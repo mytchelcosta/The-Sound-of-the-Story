@@ -2,7 +2,6 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <!-- MODIFICATION: Added viewport-fit=cover to allow the app to use the full screen area -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>The Sound of the Story</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -91,40 +90,58 @@
              transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
-        /* --- MODIFICATION START: Safe Area Adjustments for Mobile Browser UI --- */
+        /* --- MODIFICATION START: Dynamic Height & Safe Area Adjustments --- */
+        
+        /* This class uses a JS-set variable to get the true inner height of the window, avoiding the 100vh issue on mobile */
+        .dynamic-h-screen {
+            height: 100vh; /* Fallback for non-JS or older browsers */
+            height: var(--app-height, 100vh);
+        }
+
         /* This ensures UI elements are not hidden by the browser's address bar or device notches */
         #mindmap-header {
+            /* Use constant() for older iOS versions, env() for modern browsers */
+            padding-top: calc(1rem + constant(safe-area-inset-top, 0rem));
             padding-top: calc(1rem + env(safe-area-inset-top, 0rem));
+            padding-left: calc(1rem + constant(safe-area-inset-left, 0rem));
             padding-left: calc(1rem + env(safe-area-inset-left, 0rem));
+            padding-right: calc(1rem + constant(safe-area-inset-right, 0rem));
             padding-right: calc(1rem + env(safe-area-inset-right, 0rem));
         }
 
         #mindmap-search-container {
+             /* Use constant() for older iOS versions, env() for modern browsers */
+             bottom: calc(1rem + constant(safe-area-inset-bottom, 0rem));
              bottom: calc(1rem + env(safe-area-inset-bottom, 0rem));
+             left: calc(50% + constant(safe-area-inset-left, 0rem) - constant(safe-area-inset-right, 0rem));
              left: calc(50% + env(safe-area-inset-left, 0rem) - env(safe-area-inset-right, 0rem));
         }
 
         #controls {
             /* Position controls below the header, respecting the safe area */
+            top: calc(5.5rem + constant(safe-area-inset-top, 0rem));
             top: calc(5.5rem + env(safe-area-inset-top, 0rem));
+            right: calc(1rem + constant(safe-area-inset-right, 0rem));
             right: calc(1rem + env(safe-area-inset-right, 0rem));
         }
         
         @media (min-width: 1024px) { /* lg breakpoint */
             #controls {
                 /* On larger screens, position it closer to the top edge */
+                top: calc(1.5rem + constant(safe-area-inset-top, 0rem));
                 top: calc(1.5rem + env(safe-area-inset-top, 0rem));
             }
         }
         
         #dashboard-header {
+            padding-top: calc(3rem + constant(safe-area-inset-top, 0rem));
             padding-top: calc(3rem + env(safe-area-inset-top, 0rem));
         }
          #dashboard-footer {
+            padding-bottom: calc(1.5rem + constant(safe-area-inset-bottom, 0rem));
             padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0rem));
         }
         /* --- MODIFICATION END --- */
-
 
         #controls .control-group { border-bottom: 1px solid rgba(245, 158, 11, 0.2); padding-bottom: 0.75rem; margin-bottom: 0.75rem; }
         #controls .control-group:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
@@ -234,7 +251,8 @@
         </div>
 
         <!-- View: Reader -->
-        <div id="view-reader" class="hidden h-screen overflow-y-auto">
+        <!-- MODIFICATION: Replaced h-screen with dynamic-h-screen -->
+        <div id="view-reader" class="hidden dynamic-h-screen overflow-y-auto">
             <header class="sticky top-0 glass-card z-20">
                 <div class="max-w-5xl mx-auto p-4 flex items-center justify-between">
                      <button id="back-to-dashboard-btn" class="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 transition">
@@ -250,7 +268,8 @@
         </div>
         
         <!-- View: Mind Map -->
-        <div id="view-mindmap" class="hidden h-screen relative">
+        <!-- MODIFICATION: Replaced h-screen with dynamic-h-screen -->
+        <div id="view-mindmap" class="hidden dynamic-h-screen relative">
             <div id="mindmap-container">
                 <svg id="mindmap-svg"></svg>
             </div>
@@ -327,6 +346,15 @@
     <script>
     // --- APP INITIALIZATION ---
     document.addEventListener('DOMContentLoaded', () => {
+
+        // --- MODIFICATION: Set dynamic viewport height ---
+        const setAppHeight = () => {
+            const doc = document.documentElement;
+            doc.style.setProperty('--app-height', `${window.innerHeight}px`);
+        };
+        window.addEventListener('resize', setAppHeight);
+        window.addEventListener('orientationchange', setAppHeight);
+        setAppHeight(); // Set initial height
 
         // --- DATA STORE ---
         // NOTE: This is the complete, unabridged data for the application.
