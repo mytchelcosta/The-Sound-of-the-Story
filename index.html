@@ -8,11 +8,10 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* --- MODIFICATION START: Added styles to prevent body scroll and bounce --- */
+        /* --- MODIFICATION START: Reverted global overflow changes to fix dashboard scrolling --- */
         html, body {
             height: 100%;
-            overflow: hidden;
-            overscroll-behavior-y: contain;
+            /* overflow: hidden; Removed */
         }
         /* --- MODIFICATION END --- */
 
@@ -20,7 +19,7 @@
             font-family: 'Inter', sans-serif;
             background-color: #111827; /* Dark Grey */
             color: #D1D5DB; /* Light Grey */
-            /* overscroll-behavior-y: contain; is now on html, body */
+            overscroll-behavior-y: contain; /* Prevents pull-to-refresh on scrollable elements */
         }
 
         /* Custom scrollbar */
@@ -72,13 +71,9 @@
         .content-prose ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1.25rem; }
         
         /* Mind Map Specific Styles */
-        /* --- MODIFICATION START: Removed height: 100% as flex-grow will handle it --- */
         #mindmap-container { position: relative; width: 100%; }
-        /* --- MODIFICATION END --- */
-
-        /* --- MODIFICATION START: Added display block and height 100% for robust sizing --- */
+        
         #mindmap-svg { cursor: grab; display: block; width: 100%; height: 100%; }
-        /* --- MODIFICATION END --- */
         
         #mindmap-svg:active { cursor: grabbing; }
         .node circle { stroke: #FBBF24; stroke-width: 2px; transition: all 0.3s ease; cursor: pointer; }
@@ -112,12 +107,6 @@
             height: var(--app-height, 100vh);
         }
         
-        /* --- MODIFICATION START: Removed old #mindmap-header and #mindmap-search-container styles --- */
-        /* Old #mindmap-header styles removed */
-        /* Old #mindmap-search-container styles removed */
-        /* --- MODIFICATION END --- */
-
-        /* --- MODIFICATION START: Added styles for the new bottom toolbar --- */
         #mindmap-toolbar {
             padding: 1rem;
             padding-bottom: calc(1rem + constant(safe-area-inset-bottom, 0rem));
@@ -128,7 +117,6 @@
             padding-right: calc(1rem + env(safe-area-inset-right, 0rem));
             flex-shrink: 0; /* Prevent toolbar from shrinking */
         }
-        /* --- MODIFICATION END --- */
 
         #controls {
             /* Position controls relative to the top safe area now */
@@ -185,10 +173,12 @@
 <body class="antialiased">
 
     <!-- App Container -->
-    <div id="app-container" class="min-h-screen">
+    <div id="app-container" class="h-full">
         
         <!-- View: Dashboard -->
-        <div id="view-dashboard" class="min-h-screen">
+        <!-- --- MODIFICATION START: Made dashboard view scrollable and use dynamic height --- */ -->
+        <div id="view-dashboard" class="dynamic-h-screen overflow-y-auto">
+        <!-- --- MODIFICATION END --- */ -->
             <header id="dashboard-header" class="text-center px-4 pb-12">
                 <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight">The Sound of the Story</h1>
                 <p class="mt-4 max-w-2xl mx-auto text-lg text-slate-400">A Comprehensive Dictionary of Professional Audio</p>
@@ -273,19 +263,14 @@
         </div>
         
         <!-- View: Mind Map -->
-        <!-- --- MODIFICATION START: Changed to a flex column layout to fix scrolling/spacing issues --- -->
-        <div id="view-mindmap" class="hidden dynamic-h-screen flex flex-col">
-            <!-- --- MODIFICATION START: Added flex-grow to make the map container fill available space --- -->
+        <!-- --- MODIFICATION START: Added overflow-hidden to contain the flex layout and prevent body scroll --- */ -->
+        <div id="view-mindmap" class="hidden dynamic-h-screen flex flex-col overflow-hidden">
+        <!-- --- MODIFICATION END --- */ -->
             <div id="mindmap-container" class="flex-grow">
-            <!-- --- MODIFICATION END --- -->
                 <svg id="mindmap-svg"></svg>
             </div>
             <div id="tooltip"></div>
             
-            <!-- --- MODIFICATION START: Removed old header and search bar from here --- -->
-            <!-- Old header and search bar elements were removed -->
-            <!-- --- MODIFICATION END --- -->
-
             <div id="controls" class="hidden lg:flex flex-col gap-4 glass-card rounded-lg p-3 absolute z-10 max-h-[calc(100vh-120px)] lg:max-h-[calc(100vh-100px)] overflow-y-auto">
                  <div class="control-group">
                     <h3>Pathfinder</h3>
@@ -308,7 +293,6 @@
                 </div>
             </div>
 
-            <!-- --- MODIFICATION START: New bottom toolbar with all controls --- -->
             <div id="mindmap-toolbar" class="w-full z-20 flex justify-between items-center gap-4">
                 <!-- Back Button (icon only) -->
                 <button id="mindmap-back-btn" class="glass-card rounded-lg p-3 flex-shrink-0 text-amber-400 hover:text-amber-300 transition">
@@ -331,7 +315,6 @@
                     </svg>
                 </button>
             </div>
-             <!-- --- MODIFICATION END --- -->
 
         </div>
 
@@ -357,14 +340,13 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
 
-        // --- MODIFICATION: Set dynamic viewport height ---
         const setAppHeight = () => {
             const doc = document.documentElement;
             doc.style.setProperty('--app-height', `${window.innerHeight}px`);
         };
         window.addEventListener('resize', setAppHeight);
         window.addEventListener('orientationchange', setAppHeight);
-        setAppHeight(); // Set initial height
+        setAppHeight();
 
         // --- DATA STORE ---
         const soundData = {
