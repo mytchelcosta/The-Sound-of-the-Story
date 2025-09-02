@@ -8,12 +8,9 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* --- MODIFICATION START: Reverted global overflow changes to fix dashboard scrolling --- */
         html, body {
             height: 100%;
-            /* overflow: hidden; Removed */
         }
-        /* --- MODIFICATION END --- */
 
         body {
             font-family: 'Inter', sans-serif;
@@ -76,7 +73,7 @@
         #mindmap-svg { cursor: grab; display: block; width: 100%; height: 100%; }
         
         #mindmap-svg:active { cursor: grabbing; }
-        /* --- MODIFICATION START: Node/Link colors are now set dynamically in JS --- */
+        
         .node circle { 
             stroke-width: 2.5px; 
             transition: all 0.3s ease; 
@@ -87,7 +84,6 @@
             filter: drop-shadow(0 0 8px #FBBF24); /* Global hover glow */
         }
         .node text { 
-            fill: #E2E8F0; 
             font-size: 12px; 
             pointer-events: none; 
             text-shadow: 0 1px 3px rgba(0,0,0,0.7); 
@@ -104,7 +100,6 @@
         .link.category { 
             stroke-dasharray: 2,2; 
         }
-        /* --- MODIFICATION END --- */
         
         .node.path circle, .node.path-endpoint circle { 
             filter: drop-shadow(0 0 12px #10B981);
@@ -128,8 +123,6 @@
              transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
-        /* --- MODIFICATION START: Dynamic Height & Safe Area Adjustments --- */
-        
         .dynamic-h-screen {
             height: 100vh; /* Fallback */
             height: var(--app-height, 100vh);
@@ -147,7 +140,6 @@
         }
 
         #controls {
-            /* Position controls relative to the top safe area now */
             top: calc(1rem + constant(safe-area-inset-top, 0rem));
             top: calc(1rem + env(safe-area-inset-top, 0rem));
             right: calc(1rem + constant(safe-area-inset-right, 0rem));
@@ -169,7 +161,6 @@
             padding-bottom: calc(1.5rem + constant(safe-area-inset-bottom, 0rem));
             padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0rem));
         }
-        /* --- MODIFICATION END --- */
 
         #controls .control-group { border-bottom: 1px solid rgba(245, 158, 11, 0.2); padding-bottom: 0.75rem; margin-bottom: 0.75rem; }
         #controls .control-group:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
@@ -204,9 +195,7 @@
     <div id="app-container" class="h-full">
         
         <!-- View: Dashboard -->
-        <!-- --- MODIFICATION START: Made dashboard view scrollable and use dynamic height --- */ -->
         <div id="view-dashboard" class="dynamic-h-screen overflow-y-auto">
-        <!-- --- MODIFICATION END --- */ -->
             <header id="dashboard-header" class="text-center px-4 pb-12">
                 <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight">The Sound of the Story</h1>
                 <p class="mt-4 max-w-2xl mx-auto text-lg text-slate-400">A Comprehensive Dictionary of Professional Audio</p>
@@ -291,9 +280,7 @@
         </div>
         
         <!-- View: Mind Map -->
-        <!-- --- MODIFICATION START: Added overflow-hidden to contain the flex layout and prevent body scroll --- */ -->
         <div id="view-mindmap" class="hidden dynamic-h-screen flex flex-col overflow-hidden">
-        <!-- --- MODIFICATION END --- */ -->
             <div id="mindmap-container" class="flex-grow">
                 <svg id="mindmap-svg"></svg>
             </div>
@@ -339,7 +326,7 @@
                 <!-- Toggle Controls/Gear Button -->
                 <button id="toggle-controls-btn" class="lg:hidden glass-card rounded-lg p-3 flex-shrink-0 text-amber-400 hover:text-amber-300 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                       <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                       <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066 2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                     </svg>
                 </button>
             </div>
@@ -855,9 +842,7 @@
                 "Update Mode": { definition: "An automation mode in an automated mixing system that allows a mixer to adjust a previously automated parameter without erasing the automation for all the other parameters on that track.", context: "Allows for detailed and iterative refinement of a mix.", related: ["Automation", "DAW", "Mix", "Read Mode", "Write Mode"], category: "Mixing & Editing" },
                 "Variable Area": { definition: "A type of optical sound track where the width of the clear area varies with the sound's amplitude.", context: "One of the two main methods for creating an analog optical soundtrack on film.", related: ["Optical Sound"], category: "Gear & Formats" },
                 "VCA Compressor": { definition: "A type of compressor that uses a Voltage-Controlled Amplifier (VCA) as its gain-reduction element.", context: "Known for being fast, precise, and transparent, making it a versatile tool for many mixing tasks.", related: ["Compression", "FET Compressor", "Glue", "Optical Compressor"], category: "Processing & Effects" },
-                /* --- MODIFICATION START: Corrected 'Velocity' category --- */
                 "Velocity": { definition: "In MIDI, a measure of how hard a key on a keyboard or a pad on a drum machine is struck.", context: "Typically controls volume but can be mapped to other parameters for expressive performances.", related: ["Aftertouch", "MIDI", "Sequencer", "Virtual Instrument", "Zone"], category: "Gear & Formats" },
-                /* --- MODIFICATION END --- */
                 "Vibrato": { definition: "A musical effect consisting of a regular, pulsating change of pitch.", context: "Used to add expression and warmth to vocal and instrumental notes.", related: ["LFO", "Modulation", "Pitch", "Tremolo"], category: "Processing & Effects" },
                 "Virtual Instrument": { definition: "A software-based synthesizer or sampler that generates audio.", context: "Triggered by MIDI data from a sequencer or controller.", related: ["Plugin", "MIDI", "Sampler", "Synthesis"], category: "Gear & Formats" },
                 "VITC (Vertical Interval Time Code)": { definition: "A form of SMPTE time code that is recorded into the vertical blanking interval of a video signal.", context: "Unlike LTC, VITC can be read even when the tape is paused.", related: ["LTC", "SMPTE Time Code", "Timecode"], category: "Technical Principles" },
@@ -1095,9 +1080,9 @@
                     const definition = soundData.dictionary[term].definition;
                     const firstSentence = definition.split('. ')[0] + '.';
                     return `<div class="p-4 hover:bg-amber-500/10 cursor-pointer search-result-item rounded-md" data-term="${term}">
-                            <p class="font-bold text-white">${term}</p>
-                            <p class="text-sm text-slate-400 mt-1">${firstSentence}</p>
-                        </div>`;
+                                <p class="font-bold text-white">${term}</p>
+                                <p class="text-sm text-slate-400 mt-1">${firstSentence}</p>
+                            </div>`;
                 }).join('');
             }
             searchResultsContainer.classList.remove('hidden');
@@ -1189,11 +1174,9 @@
             svg.selectAll("*").remove();
             focusedCategory = null;
 
-            // --- MODIFICATION START: New color palette and scale ---
             const allCategories = [...new Set(Object.values(dictionary).map(d => d.category))].sort();
-            const palette = ["#e76f51", "#2a9d8f", "#e9c46a", "#c1121f", "#264653", "#f4a261", "#8e44ad", "#7b2cbf", "#16a085", "#f39c12", "#c0392b", "#2980b9", "#27ae60"];
+            const palette = ["#0369a1", "#06b6d4", "#ea580c", "#84cc16", "#6b21a8", "#f59e0b", "#c026d3", "#2563eb", "#059669", "#0d9488"];
             const color = d3.scaleOrdinal().domain(allCategories).range(palette);
-            // --- MODIFICATION END ---
             
             if (visibleCategories === null) visibleCategories = allCategories;
 
@@ -1232,7 +1215,6 @@
             
             const g = svg.append("g");
             
-            // --- MODIFICATION START: Dynamic link coloring ---
             const link = g.append("g")
                 .selectAll("line")
                 .data(links)
@@ -1242,11 +1224,9 @@
                     const termCategory = d.source.category || (d.target.isCategory ? d.target.id : d.target.category);
                     return d3.color(color(termCategory)).copy({opacity: 0.25});
                 });
-            // --- MODIFICATION END ---
 
             const node = g.append("g").selectAll("g").data(nodes).join("g").attr("class", d => d.isCategory ? "node category" : "node");
 
-            // --- MODIFICATION START: Dynamic node coloring ---
             node.append("circle")
                 .attr("r", d => d.isCategory ? 20 : 10)
                 .attr("fill", d => {
@@ -1260,61 +1240,67 @@
                 .attr('x', d => d.isCategory ? 0 : 15)
                 .attr('y', d => d.isCategory ? 32 : 4)
                 .style("text-anchor", d => d.isCategory ? "middle" : "start")
-                .style("fill", d => {
-                     if (d.isCategory) {
-                        const c = d3.color(color(d.id));
-                        // Using a standard luminance formula to determine text color for contrast
-                        const luminance = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255;
-                        return luminance > 0.5 ? '#222' : '#f1f1f1';
-                     }
-                     return '#E2E8F0';
-                });
-            // --- MODIFICATION END ---
+                .style("fill", "#E2E8F0");
 
             node.call(d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended));
 
+            let hoverTimer;
+            const HOVER_DELAY = 250;
+            
             node.on("mouseover", (event, d) => {
-                if (d.isCategory) return;
-                tooltip.style("opacity", 1).html(`<h3>${d.id}</h3><p>${dictionary[d.id].definition.split('. ')[0] + '.'}</p>`).style("left", (event.pageX + 15) + "px").style("top", (event.pageY - 28) + "px");
-
-                // Get all nodes connected to the hovered node 'd'
-                const connectedNodes = new Set([d.id]);
-                link.each(l => {
-                    if (l.source.id === d.id) connectedNodes.add(l.target.id);
-                    if (l.target.id === d.id) connectedNodes.add(l.source.id);
-                });
-
-                // Fade non-connected nodes and links
-                node.classed('faded', n => !connectedNodes.has(n.id) && n.id !== focusedCategory);
-                link.classed('faded', l => l.source.id !== d.id && l.target.id !== d.id);
-
-                // Highlight connected links
-                link.filter(l => l.source.id === d.id || l.target.id === d.id)
-                    .style('stroke', '#F87171')
-                    .style('stroke-width', '2.5px');
-
-            }).on("mouseout", () => {
-                tooltip.style("opacity", 0);
-                
-                // --- MODIFICATION START: Preserve focus on mouseout ---
-                // Reset temporary hover styles
-                link.style('stroke', null)
-                    .style('stroke-width', null);
-
-                // If no category is focused, unfade everything.
-                if (!focusedCategory) {
-                    node.classed('faded', false);
-                    link.classed('faded', false);
-                } else {
-                    // If a category IS focused, re-apply the focus fading to override the hover effect.
-                    const isNodeFaded = (d) => {
-                        if (d.isCategory) return d.id !== focusedCategory;
-                        return d.category !== focusedCategory;
-                    };
-                    node.classed("faded", isNodeFaded);
-                    link.classed("faded", d => isNodeFaded(d.source) || isNodeFaded(d.target));
+                // Handle category hover instantly
+                if (d.isCategory) {
+                    d3.select(event.currentTarget).select('text')
+                        .transition().duration(200)
+                        .style('font-size', '32px');
                 }
-                // --- MODIFICATION END ---
+                
+                clearTimeout(hoverTimer);
+                hoverTimer = setTimeout(() => {
+                    if (d.isCategory) return;
+                    tooltip.style("opacity", 1).html(`<h3>${d.id}</h3><p>${dictionary[d.id].definition.split('. ')[0]}</p>`).style("left", (event.pageX + 15) + "px").style("top", (event.pageY - 28) + "px");
+
+                    const connectedNodes = new Set([d.id]);
+                    link.each(l => {
+                        if (l.source.id === d.id) connectedNodes.add(l.target.id);
+                        if (l.target.id === d.id) connectedNodes.add(l.source.id);
+                    });
+
+                    node.classed('faded', n => !connectedNodes.has(n.id) && n.id !== focusedCategory);
+                    link.classed('faded', l => l.source.id !== d.id && l.target.id !== d.id);
+
+                    link.filter(l => l.source.id === d.id || l.target.id === d.id)
+                        .style('stroke', '#F87171')
+                        .style('stroke-width', '2.5px');
+                }, HOVER_DELAY);
+
+            }).on("mouseout", (event, d) => {
+                // Handle category mouseout instantly
+                if (d.isCategory) {
+                     d3.select(event.currentTarget).select('text')
+                        .transition().duration(200)
+                        .style('font-size', '16px');
+                }
+
+                clearTimeout(hoverTimer);
+                hoverTimer = setTimeout(() => {
+                    tooltip.style("opacity", 0);
+                    
+                    link.style('stroke', null)
+                        .style('stroke-width', null);
+
+                    if (!focusedCategory) {
+                        node.classed('faded', false);
+                        link.classed('faded', false);
+                    } else {
+                        const isNodeFaded = (d) => {
+                            if (d.isCategory) return d.id !== focusedCategory;
+                            return d.category !== focusedCategory;
+                        };
+                        node.classed("faded", isNodeFaded);
+                        link.classed("faded", d => isNodeFaded(d.source) || isNodeFaded(d.target));
+                    }
+                }, HOVER_DELAY);
 
             }).on("click", (event, d) => {
                 event.stopPropagation();
@@ -1339,7 +1325,6 @@
                  svg.call(zoom.transform, d3.zoomIdentity);
             }
 
-
             function dragstarted(event, d) {
                 if (!event.active) simulation.alphaTarget(0.3).restart();
                 d.fx = d.x; d.fy = d.y;
@@ -1359,110 +1344,101 @@
         }
 
         function focusMindMapOnNode(searchTerm, shouldClearPath = true) {
-            const { nodes, svg, zoom } = currentMindMap;
-            if (!nodes) return;
-            const targetNodeData = nodes.find(n => n.id.toLowerCase() === searchTerm.toLowerCase() && !n.isCategory);
-            
-            if (shouldClearPath) {
-                clearPath();
-            }
-            d3.selectAll(".node, .link").classed("faded", false);
-            focusedCategory = null;
-            
-            if (targetNodeData && typeof targetNodeData.x === 'number') {
-                const d3Node = d3.selectAll(".node").filter(d => d.id === targetNodeData.id);
+            const { nodes, node, svg, zoom, g } = currentMindMap;
+            if (!nodes || !svg || !zoom) return;
 
-                // Highlight the found node
-                d3Node.select("circle")
-                    .transition().duration(250)
-                    .attr("r", 15).style("filter", "drop-shadow(0 0 8px #F87171)")
-                    .transition().duration(250)
-                    .attr("r", 10).style("filter", "none");
-                
-                const width = svg.node().clientWidth;
-                const height = svg.node().clientHeight;
-                const transform = d3.zoomIdentity.translate(width / 2, height / 2).scale(2).translate(-targetNodeData.x, -targetNodeData.y);
+            const targetNodeData = nodes.find(n => n.id.toLowerCase() === searchTerm.toLowerCase());
+            
+            if (shouldClearPath) clearPath();
+
+            if (targetNodeData) {
+                const container = document.getElementById('mindmap-container');
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                const scale = 2;
+                const x = width / 2 - targetNodeData.x * scale;
+                const y = height / 2 - targetNodeData.y * scale;
+
+                const transform = d3.zoomIdentity.translate(x, y).scale(scale);
+
                 svg.transition().duration(750).call(zoom.transform, transform);
+
+                node.filter(d => d.id === searchTerm)
+                    .select("circle")
+                    .transition().duration(250).attr("r", 20)
+                    .transition().duration(250).attr("r", 10);
             }
         }
         
-        function focusOnCategory(categoryName) {
-            const { node, link } = currentMindMap;
-
-            // Determine if we are un-focusing or focusing on a new category
-            const isUnfocusing = focusedCategory === categoryName;
-            
-            // Set the new focused category state
-            focusedCategory = isUnfocusing ? null : categoryName;
-
-            // If we are focusing (not un-focusing), clear any existing path highlights
-            if (!isUnfocusing) {
-                clearPath();
+        function focusOnCategory(categoryId) {
+            if (focusedCategory === categoryId) {
+                focusedCategory = null; 
+            } else {
+                focusedCategory = categoryId;
             }
-
-            // Function to determine if a node should be faded
+            const { node, link } = currentMindMap;
             const isNodeFaded = (d) => {
-                if (isUnfocusing) return false; // If un-focusing, nothing is faded
-                if (d.isCategory) return d.id !== focusedCategory; // Fade other categories
-                return d.category !== focusedCategory; // Fade terms from other categories
+                if (!focusedCategory) return false;
+                if (d.isCategory) return d.id !== focusedCategory;
+                return d.category !== focusedCategory;
             };
 
-            // Apply fading classes
             node.classed("faded", isNodeFaded);
             link.classed("faded", d => isNodeFaded(d.source) || isNodeFaded(d.target));
+        }
+
+        function findShortestPath(startNodeId, endNodeId) {
+            const { links } = currentMindMap;
+            if (!links) return null;
+
+            const adj = new Map();
+            links.forEach(({source, target}) => {
+                const sourceId = source.id || source;
+                const targetId = target.id || target;
+                if (!adj.has(sourceId)) adj.set(sourceId, []);
+                if (!adj.has(targetId)) adj.set(targetId, []);
+                adj.get(sourceId).push(targetId);
+                adj.get(targetId).push(sourceId);
+            });
+
+            const queue = [[startNodeId]];
+            const visited = new Set([startNodeId]);
+
+            while (queue.length > 0) {
+                const path = queue.shift();
+                const node = path[path.length - 1];
+                if (node === endNodeId) return path;
+
+                if (adj.has(node)) {
+                    for (const neighbor of adj.get(node)) {
+                        if (!visited.has(neighbor)) {
+                            visited.add(neighbor);
+                            const newPath = [...path, neighbor];
+                            queue.push(newPath);
+                        }
+                    }
+                }
+            }
+            return null; 
         }
 
         function handleFindPath() {
             const startNodeId = document.getElementById('path-start').value;
             const endNodeId = document.getElementById('path-end').value;
-            findAndShowPath(startNodeId, endNodeId);
-        }
-
-        function findAndShowPath(startNodeId, endNodeId) {
-            clearPath();
-            const { nodes, links } = currentMindMap;
             const findPathBtn = d3.select("#find-path-btn");
             const originalBtnText = findPathBtn.text();
-            
-            if (!nodes || !soundData.dictionary[startNodeId] || !soundData.dictionary[endNodeId]) {
-                findPathBtn.text("Invalid Term(s)").style("background-color", "#c1121f");
+
+            if (!startNodeId || !endNodeId || !soundData.dictionary[startNodeId] || !soundData.dictionary[endNodeId]) {
+                 findPathBtn.text("Invalid Term(s)").style("background-color", "#c1121f");
                 setTimeout(() => {
                     findPathBtn.text(originalBtnText).style("background-color", null);
                 }, 2500);
                 return;
             }
             
-            const adjList = new Map();
-            links.forEach(l => {
-                const sourceId = l.source.id || l.source;
-                const targetId = l.target.id || l.target;
-                if (!adjList.has(sourceId)) adjList.set(sourceId, []);
-                if (!adjList.has(targetId)) adjList.set(targetId, []);
-                adjList.get(sourceId).push(targetId);
-                adjList.get(targetId).push(sourceId);
-            });
-
-            const queue = [[startNodeId]];
-            const visited = new Set([startNodeId]);
-            let path = null;
-
-            while (queue.length > 0) {
-                const currentPath = queue.shift();
-                const lastNode = currentPath[currentPath.length - 1];
-                if (lastNode === endNodeId) {
-                    path = currentPath;
-                    break;
-                }
-                const neighbors = adjList.get(lastNode) || [];
-                for (const neighbor of neighbors) {
-                    if (!visited.has(neighbor)) {
-                        visited.add(neighbor);
-                        const newPath = [...currentPath, neighbor];
-                        queue.push(newPath);
-                    }
-                }
-            }
-
+            clearPath();
+            const path = findShortestPath(startNodeId, endNodeId);
+            
             if (path) {
                 const pathSet = new Set(path);
                 d3.selectAll(".node").classed("path", d => pathSet.has(d.id) && d.id !== startNodeId && d.id !== endNodeId);
@@ -1491,11 +1467,11 @@
             const copyrightFooter = document.getElementById('copyright-footer');
             if(copyrightFooter) {
                 const currentYear = new Date().getFullYear();
-                copyrightFooter.innerHTML = `&copy; ${currentYear} Mytchel Costa. All Rights Reserved.`;
+                copyrightFooter.innerHTML = `&copy; ${currentYear} The Sound of the Story. All Rights Reserved.`;
             }
         }
 
-
+        // Start the application
         init();
     });
     </script>
