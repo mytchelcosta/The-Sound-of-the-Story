@@ -971,7 +971,7 @@
         }
 
         function renderAZGrid() {
-            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
+            const alphabet = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
             azGridContainer.innerHTML = alphabet.map(letter => 
                 `<button class="az-letter-btn bg-slate-700/50 text-slate-300 hover:bg-amber-600 hover:text-white font-mono text-sm w-8 h-8 rounded-md transition-colors" data-letter="${letter}">${letter}</button>`
             ).join('');
@@ -1507,5 +1507,6 @@
     </script>
 </body>
 </html>
+
 
 
