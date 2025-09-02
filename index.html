@@ -139,6 +139,13 @@
         details[open] > summary {
             background-color: rgba(245, 158, 11, 0.1);
         }
+
+        #dashboard-header {
+            padding-top: calc(3rem + env(safe-area-inset-top, 0rem));
+        }
+         #dashboard-footer {
+            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0rem));
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -148,7 +155,7 @@
         
         <!-- View: Dashboard -->
         <div id="view-dashboard" class="min-h-screen">
-            <header class="text-center py-12 px-4">
+            <header id="dashboard-header" class="text-center px-4 pb-12">
                 <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight">The Sound of the Story</h1>
                 <p class="mt-4 max-w-2xl mx-auto text-lg text-slate-400">A Comprehensive Dictionary of Professional Audio</p>
             </header>
@@ -209,7 +216,7 @@
                 </details>
             </main>
 
-            <footer class="w-full p-4 pb-6">
+            <footer id="dashboard-footer" class="w-full p-4">
                 <div id="term-of-the-day-card" class="glass-card rounded-lg p-4 max-w-sm mx-auto">
                     <!-- Term of the day injected here -->
                 </div>
