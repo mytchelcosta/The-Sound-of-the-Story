@@ -2,6 +2,7 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
+    <!-- MODIFICATION: Added viewport-fit=cover to allow the app to use the full screen area -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>The Sound of the Story</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -90,25 +91,39 @@
              transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
-        /* Safe Area Adjustments for Mobile Browser UI */
+        /* --- MODIFICATION START: Safe Area Adjustments for Mobile Browser UI --- */
+        /* This ensures UI elements are not hidden by the browser's address bar or device notches */
         #mindmap-header {
-            padding: calc(1rem + env(safe-area-inset-top, 0rem)) 
-                     calc(1rem + env(safe-area-inset-right, 0rem)) 
-                     1rem 
-                     calc(1rem + env(safe-area-inset-left, 0rem));
+            padding-top: calc(1rem + env(safe-area-inset-top, 0rem));
+            padding-left: calc(1rem + env(safe-area-inset-left, 0rem));
+            padding-right: calc(1rem + env(safe-area-inset-right, 0rem));
         }
+
         #mindmap-search-container {
              bottom: calc(1rem + env(safe-area-inset-bottom, 0rem));
+             left: calc(50% + env(safe-area-inset-left, 0rem) - env(safe-area-inset-right, 0rem));
         }
+
         #controls {
+            /* Position controls below the header, respecting the safe area */
             top: calc(5.5rem + env(safe-area-inset-top, 0rem));
             right: calc(1rem + env(safe-area-inset-right, 0rem));
         }
+        
         @media (min-width: 1024px) { /* lg breakpoint */
             #controls {
+                /* On larger screens, position it closer to the top edge */
                 top: calc(1.5rem + env(safe-area-inset-top, 0rem));
             }
         }
+        
+        #dashboard-header {
+            padding-top: calc(3rem + env(safe-area-inset-top, 0rem));
+        }
+         #dashboard-footer {
+            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0rem));
+        }
+        /* --- MODIFICATION END --- */
 
 
         #controls .control-group { border-bottom: 1px solid rgba(245, 158, 11, 0.2); padding-bottom: 0.75rem; margin-bottom: 0.75rem; }
@@ -136,13 +151,6 @@
         }
         details[open] > summary {
             background-color: rgba(245, 158, 11, 0.1);
-        }
-
-        #dashboard-header {
-            padding-top: calc(3rem + env(safe-area-inset-top, 0rem));
-        }
-         #dashboard-footer {
-            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0rem));
         }
     </style>
 </head>
@@ -248,7 +256,7 @@
             </div>
             <div id="tooltip"></div>
             
-            <header id="mindmap-header" class="absolute top-0 left-0 w-full z-20 flex justify-between items-start">
+            <header id="mindmap-header" class="absolute top-0 left-0 w-full z-20 flex justify-between items-start p-4">
                 <!-- Top Left Back Button -->
                 <button id="mindmap-back-btn" class="glass-card rounded-lg p-3 flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
@@ -518,7 +526,7 @@
                 "Dark": { definition: "A subjective term for a sound that lacks high-frequency content, the opposite of 'bright'.", context: "Achieved by using a low-pass filter or a shelving EQ to reduce treble.", related: ["Bright", "EQ", "Warmth"], category: "Mixing & Editing" },
                 "DAW": { definition: "Digital Audio Workstation. A computer-based system for audio work (e.g., Pro Tools).", context: "The central hub for all modern audio post-production.", related: ["AAF", "Plugin", "Session"], category: "Gear & Formats" },
                 "Decay": { definition: "The progressive reduction in a sound's amplitude after its attack.", context: "The decay of a reverb's 'tail' creates a sense of space.", related: ["ADSR", "Envelope", "Reverb"], category: "Acoustics & Physics" },
-                "Decibel (dB)": { definition: "A logarithmic unit for measuring sound level and gain.", context: "Corresponds closely to how the ear perceives loudness.", related: ["Amplitude", "Gain", "Loudness"], category: "Acoustics & Physics" },
+                "Decibel (dB)": { definition: "A logarithmic unit for measuring sound level and gain.", context: "Corresponds closely to how the ear perceives loudness.", related: ["Amplitude", "Gain", "Level", "Loudness"], category: "Acoustics & Physics" },
                 "De-Esser": { definition: "A compressor designed to reduce sibilance (harsh 's' sounds).", context: "A vital tool for dialogue editing, it only acts on the sibilant frequency range.", related: ["Compression", "EQ", "Sibilance"], category: "Processing & Effects" },
                 "Delay": { definition: "A time-based effect that plays back a signal after a period of time.", context: "Used to create echoes, a sense of space, or rhythmic effects.", related: ["Echo", "Reverb", "Slap Back", "Time-Based Effects"], category: "Processing & Effects" },
                 "Designed Effects": { definition: "Sounds created from scratch for elements that don't exist in the real world.", context: "Used for spaceships, magical spells, or creature roars.", related: ["Hyper-real Sound", "Sound Effects (SFX)"], category: "Sound Types" },
@@ -800,7 +808,7 @@
                 "Update Mode": { definition: "An automation mode in an automated mixing system that allows a mixer to adjust a previously automated parameter without erasing the automation for all the other parameters on that track.", context: "Allows for detailed and iterative refinement of a mix.", related: ["Automation", "DAW", "Mix", "Read Mode", "Write Mode"], category: "Mixing & Editing" },
                 "Variable Area": { definition: "A type of optical sound track where the width of the clear area varies with the sound's amplitude.", context: "One of the two main methods for creating an analog optical soundtrack on film.", related: ["Optical Sound"], category: "Gear & Formats" },
                 "VCA Compressor": { definition: "A type of compressor that uses a Voltage-Controlled Amplifier (VCA) as its gain-reduction element.", context: "Known for being fast, precise, and transparent, making it a versatile tool for many mixing tasks.", related: ["Compression", "FET Compressor", "Glue", "Optical Compressor"], category: "Processing & Effects" },
-                "Velocity": { definition: "In MIDI, a measure of how hard a key on a keyboard or a pad on a drum machine is struck.", context: "Typically controls volume but can be mapped to other parameters for expressive performances.", related: ["Aftertouch", "MIDI", "Sequencer", "Virtual Instrument", "Zone"], category: "Gear & Formats" },
+                "Velocity": { definition: "In MIDI, a measure of how hard a key on a keyboard or a pad on a drum machine is struck.", context: "Typically controls volume but can be mapped to other parameters for expressive performances.", related: ["Aftertouch", "MIDI", "Sequencer", "Virtual Instrument", "Zone"], category: "Velocity" },
                 "Vibrato": { definition: "A musical effect consisting of a regular, pulsating change of pitch.", context: "Used to add expression and warmth to vocal and instrumental notes.", related: ["LFO", "Modulation", "Pitch", "Tremolo"], category: "Processing & Effects" },
                 "Virtual Instrument": { definition: "A software-based synthesizer or sampler that generates audio.", context: "Triggered by MIDI data from a sequencer or controller.", related: ["Plugin", "MIDI", "Sampler", "Synthesis"], category: "Gear & Formats" },
                 "VITC (Vertical Interval Time Code)": { definition: "A form of SMPTE time code that is recorded into the vertical blanking interval of a video signal.", context: "Unlike LTC, VITC can be read even when the tape is paused.", related: ["LTC", "SMPTE Time Code", "Timecode"], category: "Technical Principles" },
