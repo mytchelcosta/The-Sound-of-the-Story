@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Sound of the Story</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Dark Grey */
+            color: #D1D5DB; /* Light Grey */
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #111827; }
+        ::-webkit-scrollbar-thumb { background: #F59E0B; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #FBBF24; }
+
+        /* Custom Selection */
+        ::selection { background-color: #F59E0B; color: #FFFFFF; }
+
+        /* Card styles */
+        .glass-card {
+            background: rgba(31, 41, 55, 0.6); /* Translucent Grey */
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* Search input glow */
+        .search-glow:focus-within {
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+
+        /* Custom term link with new styling */
+        .term-link {
+            color: #FBBF24; /* amber-400 */
+            cursor: pointer;
+            text-decoration: none;
+            border-bottom: 1px dotted #FBBF24;
+            transition: color 0.2s ease, background-color 0.2s ease;
+            font-weight: 500;
+        }
+        .term-link:hover {
+            color: #FCD34D; /* amber-300 */
+            background-color: rgba(251, 191, 36, 0.1);
+        }
+
+        /* Modal animations */
+        #modal-backdrop { transition: opacity 0.3s ease; }
+        #modal-panel { transition: all 0.3s ease; }
+
+        /* Content styling */
+        .content-prose h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 1.5rem; color: #F9FAFB; border-bottom: 1px solid #1F2937; padding-bottom: 1rem; }
+        .content-prose h2 { font-size: 1.875rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 1rem; color: #E5E7EB; }
+        .content-prose h3 { font-size: 1.5rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.75rem; color: #D1D5DB; }
+        .content-prose p { margin-bottom: 1.25rem; line-height: 1.75; }
+        .content-prose strong { color: #FCD34D; font-weight: 600; } /* amber-300 */
+        .content-prose ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1.25rem; }
+        
+        /* Mind Map Specific Styles */
+        #mindmap-container { position: relative; width: 100%; height: 100%; }
+        #mindmap-svg { cursor: grab; }
+        #mindmap-svg:active { cursor: grabbing; }
+        .node circle { stroke: #FBBF24; stroke-width: 2px; transition: all 0.3s ease; cursor: pointer; }
+        .node.category circle { stroke: #FBBF24; fill: #FBBF24; } /* Amber color for categories */
+        .node:hover circle { transform: scale(1.2); filter: drop-shadow(0 0 8px #FBBF24); }
+        .node.category:hover circle { filter: drop-shadow(0 0 8px #FBBF24); }
+        .node text { fill: #E2E8F0; font-size: 12px; pointer-events: none; text-shadow: 0 1px 3px rgba(0,0,0,0.7); transition: opacity 0.3s ease; }
+        .node.category text { font-weight: bold; font-size: 16px; fill: #FDE68A; }
+        .link { stroke: rgba(251, 191, 36, 0.2); stroke-width: 1px; transition: all 0.3s ease; }
+        .link.category { stroke: rgba(251, 191, 36, 0.2); stroke-dasharray: 2,2; }
+        
+        .node.path, .node.path-endpoint { filter: drop-shadow(0 0 12px #10B981); }
+        .node.path circle { stroke: #10B981; fill: #A7F3D0; }
+        .node.path-endpoint circle { stroke: #10B981; fill: #10B981; }
+        .link.path { stroke: #10B981; stroke-width: 3px; }
+
+        .node.faded, .link.faded { opacity: 0.1; }
+
+        #tooltip { position: absolute; opacity: 0; background-color: rgba(31, 41, 55, 0.8); border: 1px solid rgba(245, 158, 11, 0.3); backdrop-filter: blur(5px); border-radius: 8px; padding: 12px; color: #E2E8F0; font-size: 14px; pointer-events: none; transition: opacity 0.2s; max-width: 300px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); z-index: 50;}
+        #tooltip h3 { margin: 0 0 8px 0; color: #FCD34D; font-weight: 600; }
+        #tooltip p { margin: 0; font-size: 13px; line-height: 1.5; }
+        #controls { position: absolute; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 1rem; background-color: rgba(31, 41, 55, 0.8); border: 1px solid rgba(245, 158, 11, 0.3); backdrop-filter: blur(5px); border-radius: 8px; padding: 12px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); z-index: 10; max-height: calc(100vh - 40px); overflow-y: auto;}
+        #controls .control-group { border-bottom: 1px solid rgba(245, 158, 11, 0.2); padding-bottom: 0.75rem; margin-bottom: 0.75rem; }
+        #controls .control-group:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+        #controls h3 { margin: 0 0 10px 0; font-weight: 600; color: white; font-size: 14px; }
+        #controls label { display: flex; align-items: center; font-size: 13px; cursor: pointer; color: white; margin-bottom: 0.5rem;}
+        #controls input[type=checkbox], #controls input[type=radio] { accent-color: #F59E0B; }
+        #controls input[type=text] { background-color: rgba(55, 65, 81, 0.8); border: 1px solid #374151; border-radius: 4px; padding: 4px 8px; font-size: 13px; width: 100%; margin-bottom: 0.5rem;}
+        #controls button { background-color: #F59E0B; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-size: 13px; cursor: pointer; transition: background-color 0.2s; }
+        #controls button:hover { background-color: #D97706; }
+        #controls button.secondary { background-color: #4B5563; }
+        #controls button.secondary:hover { background-color: #6B7280; }
+
+        /* Styling for the collapsible section */
+        details > summary {
+            list-style: none; /* Remove default triangle */
+            transition: background-color 0.2s ease;
+            border-radius: 6px;
+        }
+        details > summary::-webkit-details-marker {
+            display: none; /* Hide default marker on Chrome */
+        }
+        details > summary:hover {
+            background-color: rgba(245, 158, 11, 0.1);
+        }
+        details[open] > summary {
+            background-color: rgba(245, 158, 11, 0.1);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- App Container -->
+    <div id="app-container" class="min-h-screen">
+        
+        <!-- View: Dashboard -->
+        <div id="view-dashboard" class="min-h-screen">
+            <header class="text-center py-12 px-4">
+                <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight">The Sound of the Story</h1>
+                <p class="mt-4 max-w-2xl mx-auto text-lg text-slate-400">A Comprehensive Dictionary of Professional Audio</p>
+            </header>
+            
+            <main class="flex flex-col items-center px-4 pb-12">
+                <!-- Search Bar -->
+                <div class="relative max-w-2xl mx-auto mb-12 w-full">
+                    <div class="relative search-glow transition-shadow duration-300 rounded-full">
+                        <input type="text" id="search-input" placeholder="Search for a term (e.g., LFE, Foley, Diegetic)..." class="w-full bg-slate-800 border border-slate-700 rounded-full py-4 pl-14 pr-6 text-white placeholder-slate-500 text-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition">
+                        <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
+                        </span>
+                    </div>
+                    <div id="search-results-container" class="absolute w-full mt-2 hidden z-10">
+                        <div id="search-results" class="glass-card rounded-lg max-h-96 overflow-y-auto p-2"></div>
+                    </div>
+                </div>
+
+                <!-- Main Interaction Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-4xl mb-12">
+                    <!-- Mind Map Card (Enhanced) -->
+                    <div id="mind-map-card" class="glass-card rounded-lg p-8 hover:border-amber-500/50 transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden transform hover:-translate-y-1">
+                        <svg viewBox="0 0 200 100" class="w-full h-32 opacity-20 absolute bottom-0 right-0 -mr-12 -mb-8">
+                            <defs>
+                                <radialGradient id="grad1" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                                    <stop offset="0%" style="stop-color:rgb(252, 211, 77);stop-opacity:0.8" />
+                                    <stop offset="100%" style="stop-color:rgb(245, 158, 11);stop-opacity:0" />
+                                </radialGradient>
+                            </defs>
+                            <line x1="50" y1="50" x2="100" y2="20" stroke="#F59E0B" stroke-width="0.5" opacity="0.5"/><line x1="50" y1="50" x2="120" y2="80" stroke="#F59E0B" stroke-width="0.5" opacity="0.5"/><line x1="50" y1="50" x2="20" y2="80" stroke="#F59E0B" stroke-width="0.5" opacity="0.5"/><line x1="100" y1="20" x2="150" y2="40" stroke="#F59E0B" stroke-width="0.5" opacity="0.3"/><line x1="100" y1="20" x2="160" y2="10" stroke="#F59E0B" stroke-width="0.5" opacity="0.3"/><line x1="120" y1="80" x2="180" y2="90" stroke="#F59E0B" stroke-width="0.5" opacity="0.3"/>
+                            <circle cx="50" cy="50" r="8" fill="url(#grad1)"/><circle cx="50" cy="50" r="3" fill="#FDE68A"/><circle cx="100" cy="20" r="5" fill="#F59E0B" opacity="0.7"/><circle cx="120" cy="80" r="4" fill="#F59E0B" opacity="0.6"/><circle cx="20" cy="80" r="3" fill="#F59E0B" opacity="0.5"/><circle cx="150" cy="40" r="2" fill="#FBBF24" opacity="0.8"/><circle cx="160" cy="10" r="2" fill="#FBBF24" opacity="0.8"/><circle cx="180" cy="90" r="2" fill="#FBBF24" opacity="0.8"/>
+                        </svg>
+                        <div class="relative">
+                            <h3 class="text-2xl font-bold text-white">Mind Map Explorer</h3>
+                            <p class="text-slate-300 mt-2 max-w-md">Visually navigate the intricate web of sound design terminology. Discover hidden connections and chart your own path through the language of audio.</p>
+                        </div>
+                        <div class="relative mt-6 text-right text-amber-400 font-semibold">
+                            Explore the Map &rarr;
+                        </div>
+                    </div>
+                    <!-- Browse A-Z Card (Enhanced) -->
+                    <div id="browse-card" class="glass-card rounded-lg p-8 hover:border-amber-500/50 transition-all duration-300 transform hover:-translate-y-1 flex flex-col">
+                         <h3 class="text-2xl font-bold text-white mb-4">Browse A-Z</h3>
+                         <p class="text-slate-300 mb-6 flex-grow">Quickly find any term in our comprehensive A-Z glossary. Perfect for targeted lookups and quick reference.</p>
+                         <div id="az-grid-container" class="flex flex-wrap gap-2"></div>
+                    </div>
+                </div>
+                
+                <!-- Collapsible Guided Learning -->
+                <details class="max-w-4xl w-full mx-auto glass-card rounded-lg">
+                    <summary class="cursor-pointer text-lg font-semibold text-white p-4 focus:outline-none">
+                        <span class="flex items-center justify-between">
+                            <span>Guided Learning Modules</span>
+                            <span class="transform transition-transform duration-200">&#9662;</span>
+                        </span>
+                    </summary>
+                    <div id="chapter-cards-container" class="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 border-t border-amber-500/10"></div>
+                </details>
+            </main>
+
+            <footer class="w-full p-4 pb-6">
+                <div id="term-of-the-day-card" class="glass-card rounded-lg p-4 max-w-sm mx-auto">
+                    <!-- Term of the day injected here -->
+                </div>
+                <div id="copyright-footer" class="text-center text-xs text-slate-500 mt-4"></div>
+            </footer>
+        </div>
+
+        <!-- View: Reader -->
+        <div id="view-reader" class="hidden h-screen overflow-y-auto">
+            <header class="sticky top-0 glass-card z-20">
+                <div class="max-w-5xl mx-auto p-4 flex items-center justify-between">
+                     <button id="back-to-dashboard-btn" class="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                        Back to Dashboard
+                    </button>
+                    <h2 id="reader-title" class="text-xl font-bold text-white text-right"></h2>
+                </div>
+            </header>
+            <main id="reader-content" class="max-w-3xl mx-auto p-8 content-prose">
+                <!-- Chapter content injected here -->
+            </main>
+        </div>
+        
+        <!-- View: Mind Map -->
+        <div id="view-mindmap" class="hidden h-screen">
+             <header class="absolute top-0 left-0 w-full z-20">
+                <div class="p-4 flex items-center">
+                     <button id="mindmap-back-btn" class="glass-card rounded-lg p-3 flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                        Dashboard
+                    </button>
+                    <div class="relative ml-4">
+                        <input type="text" id="mindmap-search-input" list="terms-datalist" placeholder="Find term in map..." class="glass-card rounded-lg p-3 pl-10 text-sm text-white bg-transparent w-64 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
+                        </span>
+                        <datalist id="terms-datalist"></datalist>
+                    </div>
+                </div>
+            </header>
+            <div id="mindmap-container">
+                <svg id="mindmap-svg"></svg>
+            </div>
+            <div id="tooltip"></div>
+            <div id="controls">
+                 <div class="control-group">
+                    <h3>Pathfinder</h3>
+                    <input type="text" id="path-start" list="terms-datalist" placeholder="Start Term">
+                    <input type="text" id="path-end" list="terms-datalist" placeholder="End Term">
+                    <div class="flex gap-2 mt-2">
+                        <button id="find-path-btn">Find Path</button>
+                        <button id="clear-path-btn" class="secondary">Clear</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>Category Filters</h3>
+                    <div class="flex gap-2 mb-2">
+                        <button id="cat-filter-all" class="text-xs secondary flex-1">All</button>
+                        <button id="cat-filter-none" class="text-xs secondary flex-1">None</button>
+                    </div>
+                    <div id="category-filters">
+                        <!-- Checkboxes will be injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal for Term Definitions -->
+    <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-75" style="opacity: 0;"></div>
+        <div id="modal-panel" class="relative glass-card rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col transform scale-95 opacity-0">
+            <div class="px-6 py-4 border-b border-amber-500/20 flex justify-between items-center flex-shrink-0">
+                <h3 id="modal-title" class="text-xl font-bold text-white"></h3>
+                <button id="modal-close-btn" class="text-slate-400 hover:text-white transition rounded-full p-1 hover:bg-slate-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="modal-content" class="p-6 overflow-y-auto">
+                <!-- Definition content injected here -->
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+    // --- APP INITIALIZATION ---
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- DATA STORE ---
+        // NOTE: This is the complete, unabridged data for the application.
+        const soundData = {
+            introduction: {
+                title: "Introduction: The Language of the Unseen Art",
+                content: `
+                    <p>It is a sentiment echoed by legendary filmmakers like George Lucas and Francis Ford Coppola: sound is half the movie. Steven Spielberg goes further, stating, "Our ears lead our eyes to where the story lives". Yet, for all its power to evoke emotion, build worlds, and drive narrative, the art of sound remains largely unseen and its language, a mystery to many outside the dub stage. This report serves as the definitive key to understanding that language. It is designed not merely as a glossary of terms, but as a comprehensive and exhaustive dictionary—a guided tour through the professional lexicon of sound design for film, television, documentaries, and other visual media.</p>
+                    <p>The language of sound professionals is a unique and potent fusion of disparate disciplines. It blends the hard physics of <TermLink key='Acoustics'>acoustics</TermLink> with the subjective artistry of music, the technical precision of digital signal processing with the gritty, practical slang of the film set. To understand a conversation between seasoned professionals is to navigate concepts of <TermLink key='Psychoacoustics'>psychoacoustics</TermLink>, the intricacies of a post-production workflow, and the creative shorthand that translates a director's abstract emotional note into a concrete sonic reality.</p>
+                `
+            },
+            chapters: [
+                {
+                    id: "chapter-1",
+                    title: "The Sonic Palette",
+                    description: "Explore the core components of a soundtrack: Dialogue, Music, Effects, and Foley.",
+                    content: `<h2>The Core Stems of a Soundtrack</h2><p>The architecture of a modern film soundtrack is built upon a foundational principle of separation. Every sound heard in the final mix belongs to one of a few primary categories, which are kept on separate tracks, or "<TermLink key='Stems'>stems</TermLink>," throughout the post-production process. This division is not merely for organizational convenience; it is the central technical and creative principle that enables the precise control, flexibility, and artistic manipulation required to build a compelling sonic narrative. Understanding these core "food groups"—<TermLink key='Dialogue'>Dialogue (DX)</TermLink>, Music (MX), <TermLink key='Sound Effects (SFX)'>Sound Effects (SFX)</TermLink>, and <TermLink key='Foley'>Foley</TermLink>—is the first step toward comprehending the entire audio post-production workflow.</p>`,
+                    sections: [
+                        {
+                            title: "Dialogue (DX): The Anchor of the Story",
+                            content: `<h3>Dialogue (DX): The Anchor of the Story</h3><p><TermLink key='Dialogue'>Dialogue</TermLink> is the primary carrier of explicit narrative information in most films. It consists of the spoken words of the actors, and in the hierarchy of the mix, it is almost always king. This principle acknowledges the inherent privilege of the human voice in audiovisual media; our brains are hardwired to prioritize it, and thus the soundtrack is constructed to ensure its clarity and intelligibility above all else. The dialogue stem is itself a composite of several distinct types of recordings, each with its own place in the workflow.</p>
+                            <p><strong><TermLink key='Production Dialogue'>Production Dialogue</TermLink>:</strong> This is the dialogue recorded on set during filming. Capturing clean, usable production dialogue is the highest priority of the on-set sound team.</p>
+                            <p><strong><TermLink key='ADR'>ADR (Automated Dialogue Replacement)</TermLink>:</strong> When production dialogue is unusable due to noise (like a passing airplane) or when lines need to be changed after filming, actors re-record their dialogue in a studio, synchronizing their performance to the picture. This process is also known as "<TermLink key='Looping'>looping</TermLink>".</p>
+                            <p><strong><TermLink key='Walla'>Walla</TermLink>:</strong> To create the convincing, unintelligible murmur of a crowd in a scene (e.g., a restaurant or party), a group of actors, known as a "<TermLink key='Loop Group'>loop group</TermLink>," is recorded in a studio performing improvised, non-specific chatter.</p>`
+                        },
+                        {
+                            title: "Music (MX): The Emotional Core",
+                            content: `<h3>Music (MX): The Emotional Core</h3><p>Music is the emotional engine of a film. It has the power to set the atmosphere, manipulate pacing, and guide the audience's emotional response to the narrative, often on a subconscious level. Like dialogue, the music stem is composed of different elements that serve distinct narrative functions.</p>
+                            <p><strong><TermLink key='Score'>Score (or Underscore)</TermLink>:</strong> This is the original music composed specifically for the film. As a <TermLink key='Non-Diegetic Sound'>non-diegetic</TermLink> element—existing outside the world of the story—it comments on the action and tells the audience how to feel.</p>
+                            <p><strong><TermLink key='Source Music'>Source Music</TermLink>:</strong> This is music that originates from a source within the film's world, such as a car radio, a jukebox, or a live band at a party. It is <TermLink key='Diegetic Sound'>diegetic</TermLink>, meaning the characters in the story can hear it along with the audience.</p>
+                            <p><strong><TermLink key='Temp Score'>Temp Score (Temporary Music)</TermLink>:</strong> During the editing process, picture editors often use pre-existing music to establish a rhythm and emotional tone. This temporary soundtrack is known as the "temp score." While a useful guide, it can lead to a common professional challenge where the director becomes so attached to the temporary music that they have difficulty accepting the composer's original score.</p>`
+                        },
+                        {
+                            title: "Sound Effects (SFX): Building the World",
+                            content: `<h3>Sound Effects (SFX): Building the World</h3><p><TermLink key='Sound Effects (SFX)'>Sound effects</TermLink> encompass the vast sonic tapestry of a film's universe, comprising every sound that is not dialogue, music, or <TermLink key='Foley'>Foley</TermLink>. The SFX stem is a complex layering of multiple sub-categories that work together to create a believable and immersive environment.</p>
+                            <p><strong><TermLink key='Backgrounds (BGs)'>Backgrounds (BGs) / Ambiences / Atmospheres (Atmos)</TermLink>:</strong> These are the continuous, environmental sounds that define a location's sonic signature. The gentle rustle of leaves in a forest, the distant traffic and hum of a city, or the sterile buzz of a hospital are all backgrounds. They establish a sense of place, mood, and even time of day.</p>
+                            <p><strong><TermLink key='Hard Effects'>Hard Effects (or Cut Effects)</TermLink>:</strong> These are specific, discrete sounds that are synchronized to an on-screen action, such as a gunshot, a door slam, a car crash, or a telephone ringing. They are often sourced from extensive commercial or personal sound libraries.</p>
+                            <p><strong><TermLink key='Designed Effects'>Designed Effects</TermLink>:</strong> For elements that do not exist in the real world—such as the sound of a spaceship's engine, a magical spell, or a creature's roar—sound designers create new sounds from scratch. This involves recording unique sources and manipulating them through synthesis, layering, and processing to create stylized, non-literal sounds that fulfill a specific narrative purpose.</p>`
+                        },
+                        {
+                            title: "Foley: The Human Touch",
+                            content: `<h3>Foley: The Human Touch</h3><p>Named after its pioneer, Jack Foley, this unique discipline involves a <TermLink key='Foley Artist'>Foley Artist</TermLink> performing and recording incidental sound effects in a studio, perfectly synchronized to the moving picture. Production microphones are focused on capturing dialogue, meaning subtle but crucial sounds like the rustle of clothing or footsteps are often lost. <TermLink key='Foley'>Foley</TermLink> recreates these sounds, providing the essential "glue" that connects a character physically to their environment. It makes the world feel tangible and real. The art of Foley is traditionally broken down into three main categories:</p>
+                            <ul>
+                                <li><strong>Feet:</strong> The creation of footsteps, which must match the character's shoes, the surface they are walking on, and the emotion of their movement.</li>
+                                <li><strong>Moves:</strong> The subtle sounds of clothing—the swish of a jacket, the rustle of a dress, the creak of a leather coat—as a character moves.</li>
+                                <li><strong>Specifics (or Props):</strong> The sounds of any object a character interacts with, such as setting down a glass, handling a weapon, or turning the pages of a book.</li>
+                            </ul>`
+                        }
+                    ]
+                },
+                {
+                    id: "chapter-2",
+                    title: "The Audio Post-Production Workflow",
+                    description: "Follow the journey of a soundtrack from script breakdown to the final mix.",
+                    content: `<h2>From Capture to Creation</h2><p>The journey of a film's soundtrack is a complex and highly collaborative process that begins long before filming and extends to the final delivery. While often perceived as a linear sequence of events, the reality of audio post-production is frequently an iterative, and at times chaotic, cycle of creation, revision, and technical problem-solving. Understanding this workflow provides a chronological map for the terminology used by professionals at each stage.</p>`,
+                    sections: [
+                        {
+                            title: "Pre-Production: Laying the Sonic Groundwork",
+                            content: `<h3>Pre-Production: Laying the Sonic Groundwork</h3><p>The work of the sound department begins during pre-production, where foresight and planning can prevent costly and time-consuming fixes later.</p>
+                            <p><strong>Script Analysis & Location Scouting:</strong> The Supervising Sound Editor or Sound Designer will break down the script to identify key sonic moments and potential challenges. This professional will often participate in location scouts to assess the <TermLink key='Acoustics'>acoustic environment</TermLink> of a potential filming location. A beautiful, rustic cabin loses its appeal if it is directly under a major airport's flight path, as the constant noise will render the <TermLink key='Production Dialogue'>production dialogue</TermLink> unusable and necessitate expensive <TermLink key='ADR'>ADR</TermLink> sessions in post-production.</p>`
+                        },
+                        {
+                            title: "Production: Capturing the Source",
+                            content: `<h3>Production: Capturing the Source</h3><p>During the actual filming, the <TermLink key='Production Sound'>Production Sound</TermLink> team's primary responsibility is to capture the cleanest and most intelligible dialogue possible. This is a high-pressure task that requires constant coordination with the camera and lighting departments.</p>
+                            <p><strong>The On-Set Team:</strong> The team is led by the Production Sound Mixer, who operates the recording equipment and monitors the audio quality. The <TermLink key='Boom Operator'>Boom Operator</TermLink> is responsible for positioning the microphone—typically a highly directional <TermLink key='Shotgun Mic'>Shotgun Mic</TermLink> on a <TermLink key='Boom Pole'>Boom Pole</TermLink>—as close to the actors as possible without entering the camera's frame. <TermLink key='Lavalier Mic'>Lavalier Mics</TermLink>, small microphones hidden on the actors' clothing, are often used as a backup or in situations where a boom is impractical.</p>
+                            <p><strong>Essential On-Set Recordings:</strong> Beyond the dialogue, the sound team is responsible for capturing two other critical assets for post-production: <TermLink key='Room Tone'>Room Tone</TermLink> and <TermLink key='Wild Tracks'>Wild Tracks</TermLink>.</p>`
+                        },
+                        {
+                            title: "Post-Production: The Editorial Phase",
+                            content: `<h3>Post-Production: The Editorial Phase</h3><p>Once filming is complete, the project moves into <TermLink key='Post-Production'>post-production</TermLink>, where the raw materials are shaped into the final soundtrack.</p>
+                            <p><strong>Turnover and Session Preparation:</strong> The picture editor delivers the audio from their edit to the sound team in a standardized file format, typically an <TermLink key='AAF'>AAF</TermLink> or OMF. This file contains all the audio clips from the timeline. The first task for the sound team is to import this file into their <TermLink key='DAW'>DAW (Digital Audio Workstation)</TermLink> and meticulously organize the hundreds, sometimes thousands, of audio clips into a master template.</p>
+                            <p><strong>The Spotting Session:</strong> This is a crucial creative meeting where the director, supervising sound editor, and sometimes the picture editor and composer, watch the film together. They discuss the sonic direction and "spot" the film for sound, deciding precisely where specific sound effects, Foley, and music cues should be placed. The notes from this session are compiled into a <TermLink key='Cue Sheet'>Spotting Sheet (or Cue Sheet)</TermLink>.</p>
+                            <p><strong>Dialogue Editing:</strong> This is a painstaking and detailed process. The Dialogue Editor goes through every line of recorded dialogue, cleaning it up and using the recorded <TermLink key='Room Tone'>Room Tone</TermLink> to smooth over edits between different takes. They also identify any lines that are unsalvageable and flag them for <TermLink key='ADR'>ADR</TermLink>.</p>`
+                        },
+                        {
+                            title: "Post-Production: The Mix",
+                            content: `<h3>Post-Production: The Mix</h3><p>The final stage of the process is the <TermLink key='Mix'>mix</TermLink>, where all the meticulously edited sound elements are brought together and balanced to create the final soundtrack.</p>
+                            <p><strong>The Dub Stage:</strong> The mix takes place in a <TermLink key='Dub Stage'>Dub Stage</TermLink> or Dubbing Theatre. Here, one or more <TermLink key='Re-recording Mixer'>Re-recording Mixers</TermLink> sit at a large mixing console and work with the director to shape the final sound.</p>
+                            <p><strong>Pre-dubbing and the Final Mix:</strong> The mix is often done in stages. A mixer might first create a "dialogue pre-dub," then the music, then the effects. These mixed <TermLink key='Stems'>stems</TermLink>, or pre-dubs, are then combined in the Final Mix. The mixers use tools like <TermLink key='EQ'>EQ</TermLink>, <TermLink key='Compression'>Compression</TermLink>, and <TermLink key='Reverb'>Reverb</TermLink> to shape the tonal character of sounds.</p>
+                            <p><strong>Mastering and Delivery:</strong> The final mix is then <TermLink key='Mastering'>mastered</TermLink> to meet technical and loudness standards, a key metric being <TermLink key='LUFS'>LUFS</TermLink>. The team also prepares deliverables, including the full mix, separate <TermLink key='Stems'>stems</TermLink>, and the crucial <TermLink key='M&E'>M&E (Music & Effects)</TermLink> track for foreign language distribution.</p>`
+                        }
+                    ]
+                },
+                {
+                    id: "chapter-3",
+                    title: "The Narrative Function of Audio",
+                    description: "Learn the theoretical language of sound as a storytelling tool, from diegesis to psychoacoustics.",
+                    content: `<h2>Sound as Story</h2><p>Beyond the technical processes and workflow, sound design is fundamentally a storytelling art. Professionals in the field share a conceptual vocabulary that allows them to discuss the narrative and psychological impact of their work. This language moves beyond the "how" of creating sound to the "why"—exploring how sonic choices shape an audience's perception, guide their emotions, and construct the very reality of the film's world.</p>`,
+                    sections: [
+                        {
+                            title: "The World of the Film: Diegesis",
+                            content: `<h3>The World of the Film: Diegesis</h3><p>The concept of <TermLink key='Diegesis'>diegesis</TermLink> is central to film theory. The diegesis is the narrative world of the film—the reality in which the characters exist. All sounds are categorized based on their relationship to this world.</p>
+                            <p><strong><TermLink key='Diegetic Sound'>Diegetic Sound</TermLink>:</strong> This is any sound whose source is located within the story world. This includes the dialogue spoken by characters, the sound of a car driving past on screen, or music playing from a radio in a character's room. Crucially, the characters within the film can hear these sounds.</p>
+                            <p><strong><TermLink key='Non-Diegetic Sound'>Non-Diegetic Sound</TermLink>:</strong> This is any sound whose source is outside the story world. The most common examples are the musical score and a narrator's voiceover. These sounds are imposed on the scene for the benefit of the audience; the characters in the film cannot hear them.</p>
+                            <p>Filmmakers often play with the boundary between these categories. A <TermLink key='Sound Bridge'>Sound Bridge</TermLink>, for example, is a technique where sound from one scene carries over into the next, or the sound of the next scene begins before the picture changes.</p>`
+                        },
+                        {
+                            title: "Shaping Perception: Psychoacoustics in Practice",
+                            content: `<h3>Shaping Perception: Psychoacoustics in Practice</h3><p>The art of sound design is built on the science of <TermLink key='Psychoacoustics'>Psychoacoustics</TermLink>, the study of how humans perceive sound. Sound designers and mixers are applied psychoacousticians, manipulating the physical properties of sound waves to elicit specific psychological and emotional responses from the audience.</p>
+                            <p><strong>The Cocktail Party Effect:</strong> This principle describes the brain's remarkable ability to focus its auditory attention on a particular stimulus while filtering out a range of other stimuli. Mixers leverage this by ensuring dialogue remains clear and intelligible even in chaotic scenes.</p>
+                            <p><strong><TermLink key='Emotional Realism'>Emotional Realism</TermLink> vs. Physical Realism:</strong> A key principle is that the goal is not always to replicate reality, but to create a heightened version of it that serves the story's emotional needs. A real-life punch, for example, often sounds underwhelming. A filmic punch is a carefully constructed effect designed to convey the feeling of impact. This leads to the creation of <TermLink key='Hyper-real Sound'>Hyper-real Sound</TermLink>, which is exaggerated for dramatic effect but is accepted by the audience as emotionally true.</p>`
+                        },
+                        {
+                            title: "Creating the Environment: Soundscape and Sonic Texture",
+                            content: `<h3>Creating the Environment: Soundscape and Sonic Texture</h3><p>Professionals use specific terms to describe the overall sonic character of a scene or film.</p>
+                            <p><strong><TermLink key='Soundscape'>Soundscape</TermLink>:</strong> This refers to the total acoustic environment of a scene. It is not just a random collection of noises but a carefully composed and layered combination of backgrounds, effects, and Foley that defines a place and establishes a mood.</p>
+                            <p><strong>Sonic Texture:</strong> This term describes the perceived quality and density of the soundscape. A soundscape can have a "thick" or "dense" texture, with many overlapping sounds, or a "sparse" texture. Adjectives like "warm," "bright," or "gritty" are also used to describe the overall sonic texture.</p>`
+                        },
+                         {
+                            title: "The Unspoken Agreement: The Audiovisual Contract",
+                            content: `<h3>The Unspoken Agreement: The Audiovisual Contract</h3><p>The entire artifice of film sound rests on a set of cognitive principles that allow the audience to connect what they hear with what they see, even when that connection is completely fabricated.</p>
+                            <p><strong>The <TermLink key='Audiovisual Contract'>Audiovisual Contract</TermLink>:</strong> A term coined by theorist Michel Chion, this refers to the audience's implicit, unspoken agreement to believe that the sounds they hear are genuinely produced by the images they see on screen.</p>
+                            <p><strong><TermLink key='Synchresis'>Synchresis</TermLink>:</strong> This is the neurological phenomenon that fuels the audiovisual contract. It is the brain's spontaneous and irresistible tendency to forge a connection between a sound and a visual event when they occur at the same time. This is the magic that makes <TermLink key='Foley'>Foley</TermLink> work.</p>`
+                        }
+                    ]
+                }
+            ],
+            dictionary: {
+                "3D Audio": { definition: "Audio playback systems that create a three-dimensional sound field, including height. The system that enables the immersive audio experience.", context: "3D audio systems are required to properly experience object-based formats like Dolby Atmos.", related: ["Binaural", "Immersive Audio", "Object-Based Audio", "Spatial Audio"], category: "Gear & Formats" },
+                "5.1": { definition: "A common surround sound format with five main speaker channels (front left, center, front right, surround left, surround right) and one Low-Frequency Effects (LFE) channel.", context: "For many years, 5.1 was the standard for home theater and DVD/Blu-ray audio.", related: ["7.1", "LFE", "Surround Sound"], category: "Gear & Formats" },
+                "7.1": { definition: "A surround sound format that adds two additional 'surround back' channels to the 5.1 setup.", context: "Provides a more detailed and enveloping rear sound field compared to 5.1.", related: ["5.1", "LFE", "Surround Sound"], category: "Gear & Formats" },
+                "AAF": { definition: "Advanced Authoring Format. A multimedia file format for exchanging project data between editing platforms.", context: "The digital 'package' that kicks off audio post-production.", related: ["OMF", "DAW", "Turnover"], category: "Workflow & Formats" },
+                "Absorption": { definition: "The process by which a material takes in sound energy.", context: "Used in acoustic treatment to control unwanted reflections and reverberation.", related: ["Acoustics", "Diffusion", "Reverb"], category: "Acoustics & Physics" },
+                "Acoustics": { definition: "The science of sound, or the qualities of a room that determine how sound behaves.", context: "A primary consideration at every stage, from location scouting to dub stage design.", related: ["Absorption", "Diffusion", "Reverb"], category: "Acoustics & Physics" },
+                "Added Value": { definition: "A concept where sound enriches an image, creating a more powerful combined perception.", context: "Sound transforms an image's meaning, suggesting emotion or context.", related: ["Anempathetic Sound", "Empathetic Sound", "Synchresis"], category: "Narrative & Theory" },
+                "ADR": { definition: "Automated Dialogue Replacement. The process of re-recording dialogue in a studio.", context: "Used to replace noisy production dialogue or change lines.", related: ["Dialogue", "Dubbing", "Lip Sync", "Looping"], category: "Workflow & Roles" },
+                "ADSR": { definition: "A model for a sound's envelope: Attack, Decay, Sustain, and Release.", context: "Defines the temporal shape of a sound. Synthesizers and compressors often have ADSR controls to shape sound.", related: ["Envelope", "Attack", "Decay", "Sustain", "Release"], category: "Acoustics & Physics" },
+                "Aftertouch": { definition: "A MIDI message that senses pressure applied to a key after it has been struck.", context: "Allows for expressive control over parameters like vibrato or filter cutoff without needing another controller.", related: ["MIDI", "Velocity", "Virtual Instrument"], category: "Gear & Formats" },
+                "Air": { definition: "A subjective term for very high-frequency content (above 12 kHz).", context: "Adds a sense of openness and delicacy to a mix, often boosted with an EQ.", related: ["Bright", "EQ", "Hiss"], category: "Mixing & Editing" },
+                "Ambience": { definition: "The pervasive, low-level background sounds that define a location.", context: "The canvas upon which the soundtrack is painted, making a space feel real.", related: ["Atmospheres", "Backgrounds (BGs)", "Room Tone", "Soundscape"], category: "Sound Types" },
+                "Amplitude": { definition: "The magnitude or intensity of a sound wave, which determines its loudness.", context: "The fundamental physical property of volume, visualized by the height of a waveform.", related: ["Decibel (dB)", "Gain", "Level", "Loudness"], category: "Acoustics & Physics" },
+                "Analog": { definition: "A method of recording or signal processing using a continuous physical quantity, as opposed to discrete digital values.", context: "Often associated with 'warmth' and 'character' from tape machines and tube circuits.", related: ["Saturation", "Tape Saturation", "Warmth"], category: "Technical Principles" },
+                "Anempathetic Sound": { definition: "Sound or music that seems indifferent to the on-screen drama.", context: "Creates an unsettling juxtaposition, like a cheerful song during a violent scene.", related: ["Contrapuntal Sound", "Empathetic Sound", "Source Music"], category: "Narrative & Theory" },
+                "Asynchronous Sound": { definition: "Sound that is not matched temporally with the image.", context: "Used for suspense (unseen footsteps) or commentary (voiceover).", related: ["Nonsynchronous Sound", "Sound Bridge", "Voiceover (VO)"], category: "Narrative & Theory" },
+                "Attack": { definition: "The initial part of a sound's envelope; the time it takes to reach maximum amplitude.", context: "Crucial to a sound's impact. Compressors can manipulate the attack to make sounds 'punchy.'", related: ["ADSR", "Compression", "Transient"], category: "Processing & Effects" },
+                "Atmospheres": { definition: "A term for the low-level background sounds that establish a scene's reality.", context: "Synonymous with Ambience. Often abbreviated 'Atmos.'", related: ["Ambience", "Backgrounds (BGs)", "Soundscape"], category: "Sound Types" },
+                "Audio Interface": { definition: "A hardware device that connects microphones and other audio gear to a computer.", context: "Handles analog-to-digital and digital-to-analog conversion.", related: ["DAW", "Latency", "I/O"], category: "Gear & Formats" },
+                "Audiovisual Contract": { definition: "The audience's implicit agreement to believe the sounds they hear are produced by the images they see.", context: "The foundation of all film sound, allowing Foley and non-diegetic music to work.", related: ["Added Value", "Diegetic Sound", "Synchresis"], category: "Narrative & Theory" },
+                "Automation": { definition: "A DAW feature that records and plays back fader and knob movements.", context: "Turns a static mix into a dynamic performance, used for tasks like 'ducking' music under dialogue.", related: ["DAW", "Fader", "Mixing"], category: "Mixing & Editing" },
+                "Auxiliary Track (Aux)": { definition: "A type of track in a DAW used to process signals from multiple channels, typically for shared effects like reverb.", context: "Using an Aux track for reverb saves CPU power and creates a cohesive sense of space.", related: ["Bus", "Send", "Parallel Processing"], category: "Mixing & Editing" },
+                "Background Noise": { definition: "The ambient noise level in an environment.", context: "Minimizing it is a battle in production; Noise Reduction plugins are used to remove it in post.", related: ["Noise", "Noise Floor", "Noise Reduction", "Room Tone"], category: "Technical Principles" },
+                "Backgrounds (BGs)": { definition: "A category of SFX creating the ambient sonic environment.", context: "A fundamental layer of the SFX stem, built from multiple elements.", related: ["Ambience", "Atmospheres", "Soundscape", "Walla"], category: "Sound Types" },
+                "Balanced Line": { definition: "An audio cable with three conductors that rejects noise.", context: "The professional standard (XLR or TRS connectors) for audio connections on a film set.", related: ["XLR", "TRS", "Hum", "Unbalanced Line"], category: "Gear & Formats" },
+                "Band-Pass Filter": { definition: "A filter that passes frequencies within a certain range and rejects frequencies outside that range.", context: "Can be used to simulate the sound of a telephone or radio.", related: ["Filter", "EQ", "High-Pass Filter", "Low-Pass Filter"], category: "Processing & Effects" },
+                "Bandwidth": { definition: "The range of frequencies affected by an EQ filter.", context: "In a parametric EQ, this is controlled by the 'Q' parameter.", related: ["EQ", "Parametric EQ", "Q"], category: "Processing & Effects" },
+                "Bass": { definition: "The lower range of the audible frequency spectrum (approx. 20-250 Hz).", context: "Provides weight and power. The LFE channel is dedicated to these sounds.", related: ["Boomy", "Frequency", "LFE", "Subwoofer"], category: "Acoustics & Physics" },
+                "Bass Trap": { definition: "An acoustic absorber designed to control low-frequency sound waves.", context: "A critical component of acoustic treatment in a dub stage.", related: ["Absorption", "Acoustics", "Boomy"], category: "Acoustics & Physics" },
+                "Bidirectional": { definition: "A microphone polar pattern that picks up sound from the front and rear but rejects sound from the sides (also known as Figure-8).", context: "This is the natural pattern of most ribbon microphones.", related: ["Cardioid", "Omnidirectional", "Polar Pattern", "Ribbon Microphone"], category: "Gear & Formats" },
+                "Binaural": { definition: "A recording method using two mics to replicate human hearing for immersive 3D sound on headphones.", context: "A powerful tool for immersive media like VR and video games.", related: ["3D Audio", "Immersive Audio", "Psychoacoustics"], category: "Gear & Formats" },
+                "Bit Depth": { definition: "The number of bits of information in each digital audio sample.", context: "Corresponds to dynamic range. 24-bit is the professional standard.", related: ["Dither", "Dynamic Range", "Sample Rate", "Bit Rate"], category: "Technical Principles" },
+                "Bit Rate": { definition: "The number of bits that are conveyed or processed per unit of time.", context: "Often used in the context of compressed audio formats like MP3 to denote quality.", related: ["Bit Depth", "Digital Audio"], category: "Technical Principles" },
+                "Blimp": { definition: "A large, hollow windscreen for a shotgun microphone, often covered with a furry 'dead cat.'", context: "Essential for protecting the microphone from wind noise during exterior shoots.", related: ["Shotgun Mic", "Windscreen"], category: "Gear & Formats" },
+                "Body": { definition: "A subjective term referring to the low-mid frequency content of a sound, contributing to its fullness and weight.", context: "The counterpart to 'Air,' it gives a sound substance.", related: ["Air", "Warmth", "Midrange"], category: "Mixing & Editing" },
+                "Boom Operator": { definition: "The crew member responsible for positioning the microphone on set.", context: "A delicate and physically demanding job to capture clean dialogue.", related: ["Boom Pole", "Lavalier Mic", "Production Sound", "Shotgun Mic"], category: "Workflow & Roles" },
+                "Boom Pole": { definition: "A long, extendable pole with a microphone attached.", context: "The primary tool for positioning a microphone close to actors.", related: ["Boom Operator", "Shotgun Mic"], category: "Gear & Formats" },
+                "Boomy": { definition: "A subjective term for excessive, poorly defined low-frequency energy.", context: "A common problem from Proximity Effect or poor room acoustics.", related: ["Bass", "EQ", "Muddy"], category: "Mixing & Editing" },
+                "Boost": { definition: "To increase the level of a specific frequency range with an equalizer.", context: "The opposite of 'cut'.", related: ["Cut", "EQ"], category: "Mixing & Editing" },
+                "Bounce": { definition: "The process of combining multiple audio tracks into a single audio file.", context: "Used for creating final mixes, stems, or consolidating tracks.", related: ["DAW", "Mixdown", "Stems"], category: "Mixing & Editing" },
+                "Boxy": { definition: "A subjective term for an unpleasant, resonant sound quality caused by an excess of midrange frequencies.", context: "Can make dialogue sound like it was recorded in a small box.", related: ["Midrange", "EQ", "Muddy"], category: "Mixing & Editing" },
+                "BPM (Beats Per Minute)": { definition: "A unit of measurement for the tempo of a piece of music.", context: "Crucial for synchronizing music cues and time-based effects to the picture.", related: ["Tempo", "Music", "Rhythm"], category: "Core Concepts" },
+                "Braam": { definition: "A loud, deep, resonant, and often distorted brassy hit sound effect.", context: "Popularized by 'Inception,' it has become a film trailer cliché.", related: ["Boom", "Designed Effect", "Hit", "Impact", "Stinger"], category: "Sound Types" },
+                "Brickwall Limiter": { definition: "A type of limiter with an infinite ratio that absolutely prevents a signal from exceeding a set threshold.", context: "Used as a final protective measure in mastering to prevent digital clipping.", related: ["Limiter", "Clipping", "Mastering"], category: "Processing & Effects" },
+                "Bright": { definition: "A subjective term for a sound with an emphasis on high frequencies.", context: "Perceived as clear and crisp, but too much can sound 'harsh.'", related: ["Air", "Dark", "EQ", "Harsh"], category: "Mixing & Editing" },
+                "Buffer": { definition: "A region of memory used to temporarily store data while it is being moved from one place to another.", context: "In DAWs, a small buffer size reduces latency for recording, while a large buffer size aids stability during mixing.", related: ["DAW", "Latency"], category: "Technical Principles" },
+                "Bus": { definition: "An audio pathway that combines signals from multiple tracks.", context: "Fundamental to mixing, allowing group processing on a 'Dialogue Bus' or 'Music Bus.'", related: ["Channel", "Master Bus", "Mixing", "Auxiliary Track"], category: "Mixing & Editing" },
+                "Buzz Track": { definition: "A historical term for a track of low-level noise to prevent unnatural silence on optical film.", context: "The ancestor of modern Room Tone.", related: ["Noise Floor", "Optical Sound", "Room Tone"], category: "Technical Principles" },
+                "Calibration": { definition: "The process of adjusting audio/visual equipment to a standardized reference level for accurate reproduction.", context: "Ensures that a mix will translate correctly to other certified systems.", related: ["Monitor", "THX", "Sweet Spot"], category: "Technical Principles" },
+                "Cancellation": { definition: "Destructive interference when two sound waves of opposite phase are combined.", context: "A critical issue in multi-miking, causing a thin, hollow sound.", related: ["Comb Filter", "Phase", "Polarity"], category: "Acoustics & Physics" },
+                "Cardioid": { definition: "A heart-shaped microphone polar pattern that rejects sound from the rear.", context: "The workhorse of the industry for isolating a sound source.", related: ["Bidirectional", "Hypercardioid", "Omnidirectional", "Polar Pattern"], category: "Gear & Formats" },
+                "Channel": { definition: "An individual audio pathway for a single signal in a mixer or DAW.", context: "A large film mix can have hundreds of channels.", related: ["Bus", "Channel Strip", "Fader", "Mixer"], category: "Mixing & Editing" },
+                "Channel Strip": { definition: "The set of controls for a single channel on a mixing console, typically including gain, EQ, dynamics, and sends.", context: "Modern DAWs emulate classic analog console channel strips as plugins.", related: ["Channel", "Console", "EQ"], category: "Mixing & Editing" },
+                "Chorus": { definition: "An effect created by mixing a signal with one or more delayed, pitch-modulated copies of itself to create a thick, shimmering sound.", context: "Often used on guitars and synthesizers to add richness and width.", related: ["Flanging", "Phasing", "Modulation"], category: "Processing & Effects" },
+                "Clarity": { definition: "The quality of a sound or mix where individual elements are distinct and intelligible.", context: "A primary goal of mixing, especially for dialogue.", related: ["Intelligibility", "Muddy", "Presence"], category: "Mixing & Editing" },
+                "Clapslate": { definition: "The board with a hinged clapstick used to sync picture and sound.", context: "Provides a visual and audible sync point for post-production. Also known as a Slate.", related: ["Double-System Recording", "Slate", "Sync"], category: "Workflow & Formats" },
+                "Click": { definition: "An unwanted, short, sharp sound in an audio edit, often caused by cutting a waveform at a non-zero crossing point.", context: "Editors use 'snap to zero crossing' features to avoid clicks.", related: ["Edit", "Waveform", "Zero Crossing"], category: "Mixing & Editing" },
+                "Clipping": { definition: "Severe distortion when a signal's amplitude exceeds the maximum system level.", context: "In digital audio (above 0 dBFS), it is harsh and undesirable.", related: ["Distortion", "Gain", "Headroom", "Limiter"], category: "Technical Principles" },
+                "Cocktail Party Effect": { definition: "The brain's ability to focus on one conversation in a noisy room.", context: "A psychoacoustic principle leveraged by mixers to ensure dialogue clarity.", related: ["Psychoacoustics", "Dialogue", "Clarity"], category: "Narrative & Theory" },
+                "Coincident Miking": { definition: "A stereo miking technique where microphone capsules are placed as close together as possible to minimize phase issues.", context: "The XY Miking technique is a common example.", related: ["XY Miking", "Stereo", "Phase"], category: "Gear & Formats" },
+                "Coloration": { definition: "The degree to which a piece of audio equipment alters the tonal character of a sound.", context: "While sometimes undesirable, coloration from vintage gear is often sought after for its character.", related: ["Fidelity", "Timbre", "Warmth"], category: "Technical Principles" },
+                "Comb Filter": { definition: "Distortion from combining a signal with a delayed copy of itself.", context: "The technical name for the 'phasey' sound of Phase Cancellation.", related: ["Cancellation", "Flanger", "Phase"], category: "Processing & Effects" },
+                "Compression": { definition: "An audio process that reduces the dynamic range of a signal.", context: "A fundamental mixing tool used on dialogue for clarity and on the mix bus to 'glue' elements together.", related: ["Attack", "Dynamic Range", "Limiter", "Ratio"], category: "Processing & Effects" },
+                "Condenser Microphone": { definition: "A type of microphone that uses a capacitor to convert sound into an electrical signal, known for its detail and sensitivity.", context: "They require phantom power and are common in studio settings for vocals and acoustic instruments.", related: ["Dynamic Microphone", "Ribbon Microphone", "Polar Pattern"], category: "Gear & Formats" },
+                "Conforming": { definition: "The process of updating the sound edit to match a new picture edit.", context: "A complex and time-consuming reality of post-production.", related: ["AAF", "DAW", "Post-Production"], category: "Workflow & Roles" },
+                "Connector": { definition: "The part at the end of a cable that plugs into a device.", context: "Common audio connectors include XLR, TRS, and RCA.", related: ["XLR", "TRS", "Cable"], category: "Gear & Formats" },
+                "Console": { definition: "A large mixing desk used for combining, routing, and processing audio signals.", context: "The centerpiece of a traditional recording studio or dub stage. Also known as a Mixer.", related: ["Channel", "Fader", "Mixer"], category: "Gear & Formats" },
+                "Contact Noise": { definition: "Unwanted noise created by a lavalier microphone rubbing against clothing or an object.", context: "A common problem that dialogue editors must carefully remove.", related: ["Lavalier Mic", "Dialogue Editing"], category: "Technical Principles" },
+                "Continuity": { definition: "The principle of maintaining a smooth and logical flow between shots and scenes.", context: "Sound bridges are often used to maintain continuity across cuts.", related: ["Edit", "Jump Cut", "Sound Bridge"], category: "Workflow & Roles" },
+                "Contrapuntal Sound": { definition: "Sound used in counterpoint to the image to create an ironic juxtaposition.", context: "Forcing the audience to see a scene in a new light.", related: ["Anempathetic Sound", "Parallel Sound"], category: "Narrative & Theory" },
+                "Control Room": { definition: "The acoustically treated room where the engineer and director monitor the recording process.", context: "Separated from the studio or stage to prevent sound from the monitors from bleeding into the microphones.", related: ["Studio", "Monitor", "Talkback"], category: "Workflow & Roles" },
+                "Crash": { definition: "An onomatopoeic sound effect for a loud, smashing collision.", context: "Often layered with other sounds to create a complex impact.", related: ["Impact", "Hit", "Smash", "Onomatopoeia"], category: "Sound Types" },
+                "Crossfade": { definition: "A smooth transition where one audio clip fades out as the next fades in.", context: "The bread and butter of dialogue editing to smooth cuts.", related: ["Cut", "Edit", "Fade"], category: "Mixing & Editing" },
+                "Crossover": { definition: "An electronic circuit that splits an audio signal into different frequency bands, routing them to different speaker drivers (e.g., woofer and tweeter).", context: "Essential for multi-driver speaker systems like studio monitors and subwoofers.", related: ["Speaker", "Subwoofer", "Frequency"], category: "Gear & Formats" },
+                "Crunchy": { definition: "A subjective term for a sound with a moderate amount of pleasing distortion, often with a prominent midrange.", context: "Commonly used to describe overdriven electric guitars.", related: ["Distortion", "Saturation", "Fuzz"], category: "Processing & Effects" },
+                "Cue": { definition: "A specific piece of music or sound effect with a defined start and end point.", context: "A film's score is made of many cues, listed on a Cue Sheet.", related: ["Cue Sheet", "Score", "Spotting"], category: "Core Concepts" },
+                "Cue Sheet": { definition: "A document listing all sound and music cues and their timecodes.", context: "The blueprint for the sound edit, created during the Spotting Session.", related: ["Spotting Session", "Cue"], category: "Workflow & Formats" },
+                "Cut": { definition: "An instantaneous transition. In mixing, also means to reduce a frequency with an EQ.", context: "Abrupt audio cuts are often smoothed with Crossfades.", related: ["Crossfade", "Edit", "EQ"], category: "Mixing & Editing" },
+                "Dark": { definition: "A subjective term for a sound that lacks high-frequency content, the opposite of 'bright'.", context: "Achieved by using a low-pass filter or a shelving EQ to reduce treble.", related: ["Bright", "EQ", "Warmth"], category: "Mixing & Editing" },
+                "DAW": { definition: "Digital Audio Workstation. A computer-based system for audio work (e.g., Pro Tools).", context: "The central hub for all modern audio post-production.", related: ["AAF", "Plugin", "Session"], category: "Gear & Formats" },
+                "Decay": { definition: "The progressive reduction in a sound's amplitude after its attack.", context: "The decay of a reverb's 'tail' creates a sense of space.", related: ["ADSR", "Envelope", "Reverb"], category: "Acoustics & Physics" },
+                "Decibel (dB)": { definition: "A logarithmic unit for measuring sound level and gain.", context: "Corresponds closely to how the ear perceives loudness.", related: ["Amplitude", "Gain", "Loudness"], category: "Acoustics & Physics" },
+                "De-Esser": { definition: "A compressor designed to reduce sibilance (harsh 's' sounds).", context: "A vital tool for dialogue editing, it only acts on the sibilant frequency range.", related: ["Compression", "EQ", "Sibilance"], category: "Processing & Effects" },
+                "Delay": { definition: "A time-based effect that plays back a signal after a period of time.", context: "Used to create echoes, a sense of space, or rhythmic effects.", related: ["Echo", "Reverb", "Slap Back", "Time-Based Effects"], category: "Processing & Effects" },
+                "Designed Effects": { definition: "Sounds created from scratch for elements that don't exist in the real world.", context: "Used for spaceships, magical spells, or creature roars.", related: ["Hyper-real Sound", "Sound Effects (SFX)"], category: "Sound Types" },
+                "Dialogue": { definition: "The spoken words of actors in a film.", context: "The primary carrier of narrative information; dialogue is king.", related: ["ADR", "Production Dialogue", "Walla"], category: "Core Concepts" },
+                "Dialogue Editing": { definition: "The process of cleaning, assembling, and smoothing the production dialogue tracks.", context: "A painstaking and crucial step to ensure dialogue is clear and seamless.", related: ["ADR", "Room Tone", "PFX"], category: "Workflow & Roles" },
+                "Diegesis": { definition: "The narrative world of the film.", context: "All sounds are categorized as either inside (diegetic) or outside (non-diegetic) this world.", related: ["Diegetic Sound", "Non-Diegetic Sound"], category: "Narrative & Theory" },
+                "Diegetic Sound": { definition: "Any sound whose source is within the film's narrative world.", context: "The characters can hear these sounds (e.g., dialogue, a car radio).", related: ["Diegesis", "Non-Diegetic Sound", "Source Music", "External/Internal Diegetic Sound"], category: "Narrative & Theory" },
+                "Diffusion": { definition: "The scattering of sound energy to break up reflections.", context: "The counterpart to Absorption in acoustic treatment.", related: ["Absorption", "Acoustics", "Reverb"], category: "Acoustics & Physics" },
+                "Directional Microphone": { definition: "A microphone that is more sensitive to sound from one direction than others.", context: "Unidirectional microphones like cardioids are a primary example.", related: ["Unidirectional Microphone", "Polar Pattern", "Shotgun Mic"], category: "Gear & Formats" },
+                "Dissolve": { definition: "A gradual visual transition from one image to another.", context: "The audio equivalent is a crossfade.", related: ["Crossfade", "Transition"], category: "Mixing & Editing" },
+                "Distortion": { definition: "Any alteration of a waveform's shape.", context: "Can be an unwanted flaw or a creative tool to add grit and aggression.", related: ["Clipping", "Saturation", "Fuzz", "Crunchy"], category: "Processing & Effects" },
+                "Dither": { definition: "Low-level noise added when reducing a file's bit depth.", context: "Paradoxically, it results in a cleaner sound by masking digital distortion.", related: ["Bit Depth", "Quantization"], category: "Technical Principles" },
+                "Dolby Atmos": { definition: "An immersive, object-based surround sound technology with height channels.", context: "Allows sounds to be placed and moved as 'objects' in 3D space.", related: ["3D Audio", "Immersive Audio", "Object-Based Audio", "DTS:X"], category: "Gear & Formats" },
+                "Dolby Digital": { definition: "A common digital surround sound format for film, using perceptual audio coding (lossy compression).", context: "Found on DVDs, Blu-rays, and in many theatrical presentations.", related: ["Optical Sound", "Surround Sound"], category: "Gear & Formats" },
+                "Dolby SR": { definition: "An advanced analog optical sound format with a sophisticated noise reduction system (Spectral Recording).", context: "Often included on 35mm film prints as a high-quality analog backup.", related: ["Optical Sound", "Noise Reduction"], category: "Gear & Formats" },
+                "Double-System Recording": { definition: "The standard method where picture and sound are recorded on separate devices.", context: "Allows for much higher audio quality. A Clapslate is used to sync.", related: ["Clapslate", "Single-System Recording", "Sync", "Timecode"], category: "Workflow & Roles" },
+                "Drone": { definition: "A low-frequency, continuous sound used to create a mood.", context: "In horror films, an ominous drone can create a sense of dread.", related: ["Ambience", "Pad", "Soundscape", "Texture"], category: "Sound Types" },
+                "Dry / Wet": { definition: "The balance between an unprocessed ('dry') and processed ('wet') signal.", context: "A standard control on effects plugins to blend in the effect.", related: ["Effects", "Parallel Processing", "Reverb", "Send"], category: "Mixing & Editing" },
+                "DTS:X": { definition: "An object-based immersive audio format, a direct competitor to Dolby Atmos.", context: "Offers a similar object-based approach to creating three-dimensional soundscapes.", related: ["Dolby Atmos", "Object-Based Audio", "Immersive Audio"], category: "Gear & Formats" },
+                "Dubbing": { definition: "The process of replacing dialogue with dialogue in a different language.", context: "Crucial for international distribution, requiring a clean M&E track.", related: ["ADR", "Lip Sync", "M&E Track", "Post-synchronization"], category: "Workflow & Roles" },
+                "Dub Stage": { definition: "A large, acoustically treated room where the final mix of a film takes place.", context: "Where the Re-recording Mixer works with the director.", related: ["Mix", "Re-recording Mixer"], category: "Workflow & Roles" },
+                "Ducking": { definition: "Automatically lowering the volume of one track when another is present, typically using a sidechained compressor.", context: "Commonly used to lower music volume when dialogue is present.", related: ["Sidechain", "Compression"], category: "Mixing & Editing" },
+                "Dynamic EQ": { definition: "An equalizer where the amount of boost or cut changes dynamically based on the signal's level.", context: "A powerful problem-solving tool, acting like a frequency-specific compressor.", related: ["EQ", "Parametric EQ", "Compression"], category: "Processing & Effects" },
+                "Dynamic Microphone": { definition: "A robust type of microphone that uses a moving coil and magnet to convert sound, good for loud sources.", context: "Less sensitive than condenser mics, they are often used for drums, guitar amps, and in live sound.", related: ["Condenser Microphone", "Ribbon Microphone", "Polar Pattern"], category: "Gear & Formats" },
+                "Dynamic Range": { definition: "The difference in decibels between the quietest and loudest parts of a signal.", context: "Film soundtracks have a wide dynamic range. Compression controls it.", related: ["Compression", "Headroom", "Limiter"], category: "Technical Principles" },
+                "Dynamics": { definition: "The variation in level of an audio signal; the range between the quietest and loudest parts. Also refers to processors that control this range.", context: "Processors like compressors, gates, and expanders are called dynamics processors.", related: ["Dynamic Range", "Compression", "Gate"], category: "Technical Principles" },
+                "Echo": { definition: "A distinct, separate repetition of a sound.", context: "Different from Reverb. A sound in a canyon produces an echo.", related: ["Delay", "Reverb", "Slap Back"], category: "Processing & Effects" },
+                "Edit": { definition: "The process of selecting and assembling audio or video clips. Also, a point where two clips are joined.", context: "Precise edits are crucial for seamless audio.", related: ["Cut", "Crossfade", "Scrubbing"], category: "Mixing & Editing" },
+                "Edited Master": { definition: "The final, edited version of a project after post-production.", context: "This is the source from which all distribution copies are made.", related: ["Raw Footage", "Post-Production"], category: "Workflow & Formats" },
+                "Effects": { definition: "Signal processors used to alter the sound, such as reverb, delay, or chorus.", context: "Can be applied directly to a track or blended in using sends.", related: ["Dry / Wet", "Plugin", "Processing & Effects"], category: "Processing & Effects" },
+                "Emotional Realism": { definition: "Creating a heightened version of reality that serves a story's emotional needs.", context: "A filmic punch is designed to 'feel' powerful, not sound physically accurate.", related: ["Hyper-real Sound", "Fidelity", "Rendering"], category: "Narrative & Theory" },
+                "Empathetic Sound": { definition: "Sound whose mood directly matches the on-screen action and emotions.", context: "The most common use of sound in film. The opposite of Anempathetic Sound.", related: ["Anempathetic Sound", "Parallel Sound", "Score"], category: "Narrative & Theory" },
+                "Envelope": { definition: "The characteristic shape of a sound's amplitude over time (ADSR).", context: "A sound's temporal signature. A piano and violin have different envelopes.", related: ["ADSR", "Attack", "Decay", "Release", "Sustain"], category: "Acoustics & Physics" },
+                "EQ": { definition: "Equalization. Adjusting the balance between different frequency components.", context: "The most-used tool in mixing, for both corrective and creative tasks.", related: ["Filter", "Frequency", "Bass", "Midrange", "Treble"], category: "Processing & Effects" },
+                "Expander": { definition: "A dynamics processor that increases the dynamic range of a signal, making quiet sounds quieter.", context: "The opposite of a compressor. A noise gate is an extreme form of expander.", related: ["Gate", "Compression", "Dynamics"], category: "Processing & Effects" },
+                "External Logic": { definition: "The perception that sound is managed by an external force (the filmmaker).", context: "The film score is an exercise in external logic. A musical sting is an external comment.", related: ["Internal Logic", "Non-Diegetic Sound"], category: "Narrative & Theory" },
+                "External/Internal Diegetic Sound": { definition: "A sub-category of diegetic sound. External is from a physical source in the story space; internal is from inside a character's mind.", context: "An internal monologue is an example of internal diegetic sound.", related: ["Diegetic Sound"], category: "Narrative & Theory" },
+                "Fade": { definition: "A gradual increase (fade-in) or decrease (fade-out) in the level of an audio signal.", context: "Used at the beginning and end of clips or scenes to create smooth entrances and exits.", related: ["Crossfade", "Automation"], category: "Mixing & Editing" },
+                "Fader": { definition: "A sliding control on a mixer or DAW to adjust volume.", context: "The primary tool a mixer uses to balance sound elements.", related: ["Automation", "Channel", "Mixer"], category: "Mixing & Editing" },
+                "Feedback": { definition: "A loud squeal from a sound loop between a microphone and a speaker.", context: "A major problem in live sound, but can be used creatively.", related: ["Gain", "Microphone", "Live Sound"], category: "Technical Principles" },
+                "FET Compressor": { definition: "A type of compressor using a Field-Effect Transistor for gain reduction, known for its fast attack and colorful, aggressive sound.", context: "The classic UREI 1176 is a famous FET compressor.", related: ["VCA Compressor", "Optical Compressor", "Compression"], category: "Processing & Effects" },
+                "Fidelity": { definition: "The degree to which a system accurately reproduces the original sound.", context: "Film sound often prioritizes Emotional Realism over strict fidelity.", related: ["Distortion", "Emotional Realism", "Hyper-real Sound", "Coloration"], category: "Technical Principles" },
+                "Field Recording": { definition: "Recording audio outside a controlled studio environment.", context: "Invaluable for capturing authentic ambiences and specific effects.", related: ["Production Sound", "Wild Track"], category: "Workflow & Roles" },
+                "Film Score": { definition: "The original music composed to accompany a film.", context: "A key non-diegetic element that sets tone and guides emotions.", related: ["Cue", "Motif", "Source Music", "Temp Score"], category: "Core Concepts" },
+                "Filter": { definition: "A circuit or algorithm that removes or attenuates a range of frequencies.", context: "A High-Pass Filter removes rumble; a Low-Pass Filter can make sound distant.", related: ["EQ", "Frequency", "High-Pass Filter", "Low-Pass Filter"], category: "Processing & Effects" },
+                "Fizz": { definition: "A subjective term for unpleasant, harsh high-frequency noise or sibilance.", context: "Can be caused by over-boosting treble frequencies or by some forms of distortion.", related: ["Air", "Sibilance", "Harsh"], category: "Mixing & Editing" },
+                "Flanging": { definition: "An effect creating a sweeping 'swoosh' by mixing a signal with a delayed, modulating copy.", context: "The term originates from the analog tape era.", related: ["Chorus", "Comb Filter", "Phasing"], category: "Processing & Effects" },
+                "Flat Response": { definition: "A quality of a microphone or speaker where it reproduces all frequencies at an equal level, without adding its own color.", context: "The ideal for studio monitors to ensure accurate mixing decisions.", related: ["Monitor", "EQ", "Coloration"], category: "Technical Principles" },
+                "Fletcher-Munson Curve": { definition: "A graph showing the ear's varying sensitivity to different frequencies at different loudness levels.", context: "Explains why the perceived tonal balance of a mix changes at different volumes.", related: ["Psychoacoustics", "Loudness", "Frequency"], category: "Acoustics & Physics" },
+                "Flutter": { definition: "A rapid variation in the pitch of a sound, caused by inconsistencies in analog tape or turntable speed.", context: "The faster counterpart to 'wow'.", related: ["Wow", "Analog", "Distortion"], category: "Technical Principles" },
+                "Foley": { definition: "The art of creating incidental sound effects (footsteps, cloth rustles) in sync with the picture.", context: "The human element of SFX that makes a character feel physically present.", related: ["ADR", "Foley Artist", "PFX"], category: "Core Concepts" },
+                "Foley Artist": { definition: "A sound artist who performs and records Foley on a Foley stage.", context: "The performance is key; the timing of a footstep can convey emotion.", related: ["Foley", "Foley Stage", "Moves", "Specifics"], category: "Workflow & Roles" },
+                "Foley Stage": { definition: "An acoustically treated studio with various props and surfaces (Foley Pits) for performing and recording Foley.", context: "The dedicated workspace for a Foley Artist.", related: ["Foley", "Foley Artist"], category: "Workflow & Roles" },
+                "Frame Rate": { definition: "The number of individual video frames displayed per second (e.g., 24 fps, 30 fps).", context: "Timecode is tied to the frame rate of the project.", related: ["Timecode", "SMPTE Time Code"], category: "Technical Principles" },
+                "Frequency": { definition: "The rate at which a sound wave vibrates (in Hz), determining its pitch.", context: "Understanding the frequency spectrum (bass, mid, treble) is fundamental.", related: ["Pitch", "Hertz (Hz)", "EQ"], category: "Acoustics & Physics" },
+                "Fundamental": { definition: "The lowest frequency of a periodic waveform, which determines the sound's perceived pitch.", context: "The frequencies above the fundamental are harmonics or overtones.", related: ["Harmonics", "Overtone", "Pitch"], category: "Acoustics & Physics" },
+                "Fuzz": { definition: "A severe form of audio distortion that heavily clips the waveform, creating a very dense, harmonically rich sound.", context: "A popular effect for electric guitars, more extreme than standard distortion.", related: ["Distortion", "Crunchy", "Clipping"], category: "Processing & Effects" },
+                "Gain": { definition: "The amount of amplification applied to a signal, typically at the input.", context: "Proper Gain Staging is crucial for a clean recording with no Clipping.", related: ["Amplitude", "Headroom", "Level", "Volume"], category: "Technical Principles" },
+                "Gain Reduction": { definition: "The amount of volume decrease, in dB, that a compressor is applying to a signal at any given moment.", context: "Meters on compressor plugins show gain reduction in real-time.", related: ["Compression", "Ratio"], category: "Processing & Effects" },
+                "Gain Staging": { definition: "The process of setting proper gain levels at each stage of a signal chain to maintain a healthy signal-to-noise ratio and avoid clipping.", context: "A fundamental discipline in audio engineering.", related: ["Gain", "Trim", "Headroom", "Clipping"], category: "Technical Principles" },
+                "Gate": { definition: "A dynamics processor that acts as an automated mute.", context: "Used to remove background noise during pauses.", related: ["Compression", "Expander", "Threshold"], category: "Processing & Effects" },
+                "Glue": { definition: "A subjective mixing term for the cohesive sound from gentle bus compression.", context: "Bus compression helps 'glue' elements together to sound like a single performance.", related: ["Bus", "Compression", "Mixing", "VCA Compressor"], category: "Mixing & Editing" },
+                "Graphic EQ": { definition: "An equalizer with a series of sliders for fixed frequency bands, providing a visual graph of the EQ curve.", context: "Less precise than a Parametric EQ, but useful for quick adjustments and in live sound.", related: ["Parametric EQ", "EQ"], category: "Processing & Effects" },
+                "Ground Loop": { definition: "An unwanted electrical current that can cause hum in an audio system, often due to multiple ground connections.", context: "Can be a difficult problem to troubleshoot. Balanced lines help prevent it.", related: ["Hum", "Balanced Line"], category: "Technical Principles" },
+                "Group ADR": { definition: "Recording a group of actors (a Loop Group) to create background crowd chatter.", context: "Also known as Walla.", related: ["ADR", "Dialogue", "Loop Group", "Walla"], category: "Workflow & Roles" },
+                "Haas Effect": { definition: "A psychoacoustic effect where a delayed sound replica creates a perception of width.", context: "Used by mixers to create a more immersive sound field.", related: ["Psychoacoustics", "Delay", "Imaging"], category: "Narrative & Theory" },
+                "Hard Effects": { definition: "Specific, discrete sound effects synchronized to an on-screen event.", context: "The punctuation marks of a soundscape, like door slams or gunshots.", related: ["Backgrounds (BGs)", "Foley", "Sound Effects (SFX)"], category: "Sound Types" },
+                "Harmonics": { definition: "Frequencies that are integer multiples of a sound's fundamental frequency.", context: "They determine a sound's timbre. Distortion adds harmonics.", related: ["Distortion", "Fundamental", "Overtone", "Timbre"], category: "Acoustics & Physics" },
+                "Harsh": { definition: "A subjective term for an unpleasant, grating sound with excessive upper-mid and high frequencies.", context: "Often the result of too much EQ boost in the presence range or unwanted distortion.", related: ["Bright", "Sibilance", "Fizz"], category: "Mixing & Editing" },
+                "Headroom": { definition: "The safety margin between the normal operating level and the maximum level before Clipping.", context: "Crucial for proper gain staging to avoid overload.", related: ["Clipping", "Dynamic Range", "Gain"], category: "Technical Principles" },
+                "Hertz (Hz)": { definition: "The standard unit of measurement for frequency (cycles per second).", context: "The audible range for humans is roughly 20 Hz to 20,000 Hz.", related: ["Frequency", "Pitch"], category: "Acoustics & Physics" },
+                "High-Pass Filter (HPF)": { definition: "A filter that cuts low frequencies and allows high frequencies to pass. Also called a Low-Cut Filter.", context: "Routinely used to remove low-end rumble from dialogue and other recordings.", related: ["Filter", "EQ", "Rumble"], category: "Processing & Effects" },
+                "Hiss": { definition: "High-frequency noise, often associated with analog tape or electronic components.", context: "Can be reduced with noise reduction software.", related: ["Noise", "Air", "White Noise"], category: "Technical Principles" },
+                "Hit": { definition: "A short, percussive sound effect, often used to emphasize an impact or transition.", context: "A common element in action sequences and trailers.", related: ["Impact", "Stinger", "Braam"], category: "Sound Types" },
+                "Hum": { definition: "A low-frequency noise, typically at 50 or 60 Hz, caused by electrical interference from power lines.", context: "Balanced lines are designed to reject hum.", related: ["Noise", "Ground Loop", "Balanced Line"], category: "Technical Principles" },
+                "Hyper-real Sound": { definition: "Sound exaggerated for dramatic effect.", context: "More impactful than physical accuracy. A lightsaber is a hyper-real sound.", related: ["Designed Effect", "Emotional Realism", "Rendering"], category: "Narrative & Theory" },
+                "Hypercardioid": { definition: "A microphone polar pattern that is even more directional than supercardioid, with a larger rear lobe of sensitivity.", context: "Offers maximum side rejection, but the rear lobe must be considered during placement.", related: ["Cardioid", "Supercardioid", "Polar Pattern", "Shotgun Mic"], category: "Gear & Formats" },
+                "I/O (Input/Output)": { definition: "The connections on a piece of audio gear for getting signals in (input) and out (output).", context: "The I/O section of a DAW manages how signals are routed to and from the audio interface.", related: ["Audio Interface", "Routing", "Signal Flow"], category: "Gear & Formats" },
+                "Imaging": { definition: "The perceived spatial distribution of sound sources.", context: "A mixer uses Panning and Reverb to create a wide stereo image.", related: ["Localization", "Panning", "Soundscape", "Spatial Audio"], category: "Mixing & Editing" },
+                "Immersive Audio": { definition: "Audio that surrounds the listener, including height information.", context: "Created by technologies like Dolby Atmos.", related: ["3D Audio", "Binaural", "Dolby Atmos", "Object-Based Audio"], category: "Gear & Formats" },
+                "Impact": { definition: "A sound effect representing the collision of two objects.", context: "A staple of sound effects libraries and a key part of action scenes. Often a layered creation.", related: ["Boom", "Crash", "Hard Effect", "Hit"], category: "Sound Types" },
+                "Interference": { definition: "The contamination of a signal by an unwanted external signal, such as radio frequencies or electrical hum.", context: "A common problem that proper cabling and grounding can help prevent.", related: ["Noise", "Hum", "Unbalanced Line"], category: "Technical Principles" },
+                "Intelligibility": { definition: "The degree to which speech can be clearly understood.", context: "A primary goal of dialogue mixing, supported by the principle of Vococentrism.", related: ["Dialogue", "Clarity", "Vococentrism"], category: "Technical Principles" },
+                "Internal Logic": { definition: "The perception that sound arises naturally from the narrative situation.", context: "The opposite of External Logic.", related: ["Diegetic Sound", "External Logic"], category: "Narrative & Theory" },
+                "J-Cut": { definition: "An edit where the audio from the next scene begins before the picture changes (the audio leads the video).", context: "A common transitional device named for the J-shape of the clips in an editing timeline.", related: ["L-Cut", "Sound Bridge"], category: "Mixing & Editing" },
+                "Jump Cut": { definition: "An abrupt transition between two similar shots, breaking continuity.", context: "A Sound Bridge may be used to smooth the jarring audio transition.", related: ["Cut", "Edit", "Sound Bridge"], category: "Mixing & Editing" },
+                "Knee": { definition: "A compressor parameter controlling how it begins to apply gain reduction.", context: "A 'hard knee' is abrupt; a 'soft knee' is gradual and more transparent.", related: ["Compression", "Limiter", "Ratio"], category: "Processing & Effects" },
+                "L-Cut": { definition: "An edit where the audio from the preceding scene continues to play over the picture of the next scene (the video leads the audio).", context: "A common transitional device named for the L-shape of the clips in an editing timeline.", related: ["J-Cut", "Sound Bridge"], category: "Mixing & Editing" },
+                "Latency": { definition: "The time delay between a signal entering and emerging from a system.", context: "A major concern during recording, as high latency can be disorienting.", related: ["DAW", "Plugin", "Buffer", "Audio Interface"], category: "Technical Principles" },
+                "Lavalier Mic": { definition: "A small, discreet microphone designed to be clipped onto clothing.", context: "Crucial for wide shots, but prone to clothing rustle.", related: ["Boom Mic", "Production Sound", "Contact Noise"], category: "Gear & Formats" },
+                "Layback / Layover": { definition: "Terms for transferring audio between video and audio systems.", context: "Tape-era terms whose concepts persist in digital workflows.", related: ["Mixdown", "Post-Production", "Prelay"], category: "Workflow & Formats" },
+                "Layering": { definition: "The practice of combining multiple sounds to create a single, more complex and rich sound effect.", context: "A fundamental technique in sound design to create unique sounds.", related: ["Sound Design", "Texture", "Mixing"], category: "Mixing & Editing" },
+                "Level": { definition: "A general term for the magnitude or strength of an audio signal.", context: "Includes Mic Level, Line Level, and Speaker Level.", related: ["Amplitude", "Gain", "Volume"], category: "Technical Principles" },
+                "LFE": { definition: "Low-Frequency Effects. The '.1' channel in surround sound for low bass.", context: "Sent to the Subwoofer for visceral sounds like explosions.", related: ["5.1", "7.1", "Bass", "Dolby Atmos", "Subwoofer"], category: "Gear & Formats" },
+                "LFO (Low-Frequency Oscillator)": { definition: "An oscillator producing a frequency below the range of human hearing, used to modulate other parameters to create effects like vibrato or tremolo.", context: "A core component of most synthesizers.", related: ["Modulation", "Vibrato", "Tremolo", "Synthesis"], category: "Processing & Effects" },
+                "Limiter": { definition: "A compressor with a very high ratio, used to prevent a signal from exceeding a set ceiling.", context: "A 'brickwall limiter' prevents digital Clipping.", related: ["Brickwall Limiter", "Clipping", "Compression", "Headroom"], category: "Processing & Effects" },
+                "Lip Sync": { definition: "The synchronization of an actor's lip movements with the audible speech.", context: "A critical technical requirement, the focus of ADR.", related: ["ADR", "Dialogue", "Dubbing", "Sync"], category: "Technical Principles" },
+                "Live Sound": { definition: "The practice of sound reinforcement and mixing for live performances.", context: "Requires a different skillset than studio mixing, with a focus on feedback prevention and quick adjustments.", related: ["Feedback", "Mixer", "Console"], category: "Workflow & Roles" },
+                "Localization": { definition: "The ability of a listener to identify the origin of a sound in direction and distance.", context: "A key goal of stereo and surround mixing, achieved through panning and other cues.", related: ["Imaging", "Panning", "Psychoacoustics", "Soundscape"], category: "Acoustics & Physics" },
+                "Lo-Fi": { definition: "Short for low fidelity. A sound quality characterized by imperfections like distortion, noise, and limited frequency response, often used for aesthetic effect.", context: "Plugins are often used to simulate the lo-fi sound of vintage tape or vinyl.", related: ["Distortion", "Wow", "Flutter", "Analog"], category: "Mixing & Editing" },
+                "Loop Group": { definition: "A group of voice actors who create background crowd chatter (Walla).", context: "Essential for creating custom, controllable crowd sounds.", related: ["ADR", "Group ADR", "Walla"], category: "Workflow & Roles" },
+                "Looping": { definition: "An alternative term for ADR.", context: "Originates from the practice of playing a short loop of film for the actor.", related: ["ADR"], category: "Workflow & Roles" },
+                "Loudness": { definition: "The subjective perception of a sound's intensity.", context: "Now a specific technical measurement (LUFS) for delivery standards.", related: ["Amplitude", "Decibel (dB)", "Dynamic Range", "LUFS"], category: "Technical Principles" },
+                "LTC (Longitudinal Time Code)": { definition: "A form of SMPTE time code that is recorded as an audio-like signal on a linear track of a tape.", context: "Cannot be read when the tape is paused, unlike VITC.", related: ["VITC", "Timecode", "SMPTE Time Code"], category: "Technical Principles" },
+                "LUFS": { definition: "Loudness Units Full Scale. A standardized unit for measuring perceived loudness.", context: "Streaming services use LUFS targets, ending the 'loudness war.'", related: ["Loudness", "Mastering", "Normalization", "RMS"], category: "Technical Principles" },
+                "M&E": { definition: "A complete soundtrack with the dialogue removed, leaving only Music & Effects.", context: "A crucial deliverable for international distribution to allow dubbing.", related: ["Dialogue", "Dubbing", "PFX", "Stems"], category: "Workflow & Formats" },
+                "Master Bus": { definition: "The main output bus where all individual channels and sub-buses are combined to create the final mix.", context: "Processing on the master bus affects the entire soundtrack.", related: ["Bus", "Mix", "Stems"], category: "Mixing & Editing" },
+                "Mastering": { definition: "The final stage of audio post-production, preparing the mix for distribution.", context: "The final quality control step, ensuring the track sounds its best on all systems.", related: ["Dither", "Limiter", "LUFS", "Mixdown"], category: "Workflow & Roles" },
+                "Mickey Mousing": { definition: "A scoring technique where music literally mimics on-screen actions.", context: "Originates from early Disney cartoons. Often considered simplistic.", related: ["Cue", "Score", "Underscore"], category: "Narrative & Theory" },
+                "MIDI": { definition: "Musical Instrument Digital Interface. A protocol that allows electronic instruments and computers to communicate with each other.", context: "MIDI data contains note and velocity information, but not the actual audio sound.", related: ["Sequencer", "Velocity", "Virtual Instrument"], category: "Gear & Formats" },
+                "Midrange": { definition: "The frequency spectrum between bass and treble (approx. 300 Hz - 5 kHz).", context: "The most critical area of a mix, where clarity lives.", related: ["Bass", "EQ", "Frequency", "Treble"], category: "Acoustics & Physics" },
+                "Mix": { definition: "The process of blending all audio tracks into a final, cohesive soundtrack.", context: "Where all sound elements come together to serve the story.", related: ["Dub Stage", "Mastering", "Re-recording Mixer", "Stems"], category: "Workflow & Roles" },
+                "Mixdown": { definition: "The process of combining a multitrack recording into a final mono, stereo, or surround format. Also refers to the resulting file.", context: "The final step before mastering.", related: ["Bounce", "Mastering", "Mix"], category: "Workflow & Roles" },
+                "Mixer": { definition: "An electronic device (or software) for combining, routing, and changing the level, timbre, and/or dynamics of audio signals.", context: "Can refer to a physical console or the virtual mixer in a DAW.", related: ["Console", "Channel", "Fader"], category: "Gear & Formats" },
+                "Modulation": { definition: "The process of using one signal to vary a parameter of another signal, such as using an LFO to vary pitch.", context: "The basis for effects like vibrato, tremolo, chorus, and flanging.", related: ["LFO", "Vibrato", "Tremolo"], category: "Processing & Effects" },
+                "Monitor": { definition: "A high-fidelity loudspeaker or headphone for critical listening.", context: "Designed for a flat, accurate frequency response.", related: ["Acoustics", "Flat Response", "Sweet Spot"], category: "Gear & Formats" },
+                "Mono": { definition: "An audio system with a single channel of sound.", context: "Checking a mix in mono is critical to reveal Phase Cancellation.", related: ["Cancellation", "Phase", "Stereo"], category: "Technical Principles" },
+                "Motif": { definition: "A short, recurring musical phrase or sound effect associated with a character, place, or idea.", context: "The Jaws theme is a classic musical motif.", related: ["Cue", "Score", "Theme", "Sound Design"], category: "Narrative & Theory" },
+                "Moves": { definition: "The category of Foley that covers the sound of clothing movement, such as the rustle of a dress or the swish of a jacket.", context: "Adds a subtle but crucial layer of realism to a character's presence.", related: ["Foley", "Foley Artist"], category: "Sound Types" },
+                "Muddy": { definition: "A subjective term for a mix that lacks clarity due to a build-up of low-mid frequencies.", context: "A common problem solved by using subtractive EQ.", related: ["Boomy", "Boxy", "Clarity", "EQ"], category: "Mixing & Editing" },
+                "Multitrack Recording": { definition: "A method of sound recording that allows for the separate recording of multiple sound sources to create a cohesive whole.", context: "The foundation of modern music and film sound production.", related: ["Overdubbing", "DAW", "Track"], category: "Workflow & Roles" },
+                "Music (MX)": { definition: "One of the core stems of a soundtrack, encompassing both the Score and Source Music.", context: "The MX stem is delivered to the re-recording mixer for the final mix.", related: ["Score", "Source Music", "Stems"], category: "Core Concepts" },
+                "Mute": { definition: "To silence a channel or track.", context: "Used during mixing to isolate certain elements or remove unwanted parts.", related: ["Solo", "Channel"], category: "Mixing & Editing" },
+                "Narration": { definition: "The act of telling a story, often through a voiceover.", context: "A key component of documentaries and some narrative films.", related: ["Voiceover (VO)", "Dialogue"], category: "Core Concepts" },
+                "Nasal": { definition: "A subjective term for a sound with an unpleasant, resonant quality, often due to an excess of mid-range frequencies.", context: "Similar to 'honky' or 'boxy'.", related: ["Midrange", "EQ", "Boxy"], category: "Mixing & Editing" },
+                "Nearfield Monitoring": { definition: "A monitoring setup where speakers are placed close to the listener to minimize the acoustic influence of the room.", context: "A common practice in project studios and editing bays.", related: ["Monitor", "Sweet Spot"], category: "Gear & Formats" },
+                "Noise": { definition: "Any unwanted sound, such as electrical hiss or hum.", context: "A good system has a high Signal-to-Noise Ratio (S/N).", related: ["Background Noise", "Noise Floor", "Noise Reduction", "Hiss", "Hum"], category: "Technical Principles" },
+                "Noise Floor": { definition: "The inherent level of background noise in a system.", context: "Room Tone is used to maintain a consistent noise floor.", related: ["Dither", "Noise", "Room Tone", "Signal-to-Noise Ratio"], category: "Technical Principles" },
+                "Noise Reduction": { definition: "The process of removing unwanted noise from an audio signal using specialized software.", context: "An essential tool for dialogue editing to clean up production sound.", related: ["Noise", "Background Noise", "Dialogue Editing"], category: "Processing & Effects" },
+                "Non-Diegetic Sound": { definition: "Sound whose source is external to the film's world. The characters cannot hear it.", context: "Common examples are the musical score and a narrator's voiceover.", related: ["Diegesis", "Diegetic Sound", "Score", "Voiceover (VO)"], category: "Narrative & Theory" },
+                "Nonsynchronous Sound": { definition: "Sound that is not in sync with the image.", context: "Another term for Asynchronous Sound.", related: ["Asynchronous Sound"], category: "Narrative & Theory" },
+                "Normalization": { definition: "Adjusting a file's gain so its peak amplitude reaches a specific level.", context: "Different from Compression; it doesn't change the dynamic range.", related: ["Gain", "Loudness", "LUFS", "Peak"], category: "Mixing & Editing" },
+                "Nyquist Frequency": { definition: "In digital audio, the highest frequency that can be accurately reproduced, which is half of the sample rate.", context: "A 48 kHz sample rate has a Nyquist frequency of 24 kHz.", related: ["Sample Rate", "Digital Audio"], category: "Technical Principles" },
+                "Object-Based Audio": { definition: "Immersive audio where sounds are 'objects' with positional metadata.", context: "The technology behind Dolby Atmos and DTS:X.", related: ["3D Audio", "Dolby Atmos", "Immersive Audio", "Spatial Audio"], category: "Gear & Formats" },
+                "Omnidirectional": { definition: "A microphone polar pattern that picks up sound equally from all directions.", context: "Ideal for capturing room ambience.", related: ["Cardioid", "Polar Pattern", "Proximity Effect"], category: "Gear & Formats" },
+                "Onomatopoeia": { definition: "Words that imitate the sounds they describe (e.g., buzz, hiss, crash).", context: "Forms the descriptive language used by SFX editors.", related: ["Sound Effects (SFX)", "Whoosh", "Crash"], category: "Narrative & Theory" },
+                "Optical Compressor": { definition: "A type of compressor that uses a light source and a light-dependent resistor for gain reduction, known for its smooth, musical compression.", context: "The Teletronix LA-2A is a classic example.", related: ["VCA Compressor", "FET Compressor", "Compression"], category: "Processing & Effects" },
+                "Optical Sound": { definition: "A method of encoding sound onto a film strip as a photographic pattern.", context: "The standard for decades, still used as a backup.", related: ["Dolby Digital", "Dolby SR", "Release Print", "Variable Area"], category: "Gear & Formats" },
+                "Oscillator": { definition: "An electronic circuit or software module that generates a periodic waveform, the basic building block of subtractive synthesis.", context: "Can generate sine waves, square waves, sawtooth waves, etc.", related: ["Sine Wave", "Synthesis", "LFO"], category: "Processing & Effects" },
+                "Overdubbing": { definition: "Recording a new performance while listening to previously recorded tracks.", context: "The fundamental process of multitrack recording. ADR is a form of overdubbing.", related: ["ADR", "Multitrack Recording", "Sel Sync"], category: "Workflow & Roles" },
+                "Overload": { definition: "The condition where an audio circuit is receiving a signal that is too strong for it to handle, resulting in distortion.", context: "Indicated by red lights on mixers and interfaces.", related: ["Clipping", "Headroom", "Gain"], category: "Technical Principles" },
+                "Overtone": { definition: "Any frequency present in a sound other than the fundamental frequency.", context: "Harmonics are a specific type of overtone with a whole-number relationship to the fundamental.", related: ["Harmonics", "Fundamental", "Timbre"], category: "Acoustics & Physics" },
+                "Pad": { definition: "A sustained, synthesized sound, often used as a harmonic background or atmosphere.", context: "Similar to a drone but often chordal and more common in music.", related: ["Drone", "Ambience", "Texture"], category: "Sound Types" },
+                "Panning": { definition: "Distributing a signal into a stereo or multi-channel sound field.", context: "The primary tool for creating the stereo image.", related: ["Imaging", "Localization", "Mixer", "Spatial Magnetization"], category: "Mixing & Editing" },
+                "Parallel Sound": { definition: "Sound that complements and reinforces the image.", context: "The most common sound-image relationship. The opposite of Contrapuntal Sound.", related: ["Contrapuntal Sound", "Empathetic Sound"], category: "Narrative & Theory" },
+                "Parametric EQ": { definition: "An equalizer with control over frequency, gain, and bandwidth (Q).", context: "Its surgical precision can remove a specific problematic frequency.", related: ["Bandwidth", "EQ", "Graphic EQ", "Q"], category: "Processing & Effects" },
+                "Pass By": { definition: "A sound effect of an object, often a vehicle, moving past the listener's position, typically involving a change in volume, pitch (Doppler effect), and panning.", context: "A staple sound effect for creating movement in a scene.", related: ["Whoosh", "Panning", "Sound Effects (SFX)"], category: "Sound Types" },
+                "Peak": { definition: "The highest instantaneous level of an audio signal.", context: "Peak meters are used to monitor for clipping.", related: ["RMS", "Normalization", "Clipping"], category: "Technical Principles" },
+                "Peak Meter": { definition: "A meter that displays the instantaneous peak level of an audio signal, essential for avoiding clipping.", context: "Found in all DAWs and digital audio devices.", related: ["VU Meter", "Peak", "Clipping"], category: "Gear & Formats" },
+                "PFX": { definition: "Production Effects. Sound effects captured on the production dialogue tracks.", context: "Editors separate these to create a clean M&E track.", related: ["Dialogue", "Foley", "M&E"], category: "Workflow & Roles" },
+                "Phase": { definition: "The time relationship between two sound waves.", context: "If 'out of phase,' they can destructively interfere, causing a thin sound.", related: ["Cancellation", "Comb Filter", "Mono", "Polarity"], category: "Acoustics & Physics" },
+                "Phasing": { definition: "An audio effect similar to flanging but created using all-pass filters instead of a delay line, resulting in a more subtle, swirling sound.", context: "Creates a 'swooshing' sound popular in psychedelic music.", related: ["Flanging", "Comb Filter", "Modulation"], category: "Processing & Effects" },
+                "Pink Noise": { definition: "A random signal that has equal energy per octave, corresponding more closely to how humans perceive the frequency spectrum.", context: "Sounds 'flatter' than white noise and is often used for room calibration.", related: ["White Noise", "Frequency"], category: "Technical Principles" },
+                "Pitch": { definition: "The subjective perception of a sound's frequency.", context: "Sound designers often manipulate pitch to create new sounds.", related: ["Frequency", "Fundamental", "Timbre"], category: "Acoustics & Physics" },
+                "Plosive": { definition: "A blast of air from the mouth when speaking 'p' and 'b' sounds, which can cause a low-frequency pop in a microphone.", context: "Controlled by using pop filters and proper microphone technique.", related: ["Pop Filter", "Windscreen"], category: "Technical Principles" },
+                "Plugin": { definition: "Software that adds functionality (like EQ, reverb) to a DAW.", context: "The digital toolbox of the modern sound professional.", related: ["DAW", "VST", "Virtual Instrument"], category: "Gear & Formats" },
+                "Polar Pattern": { definition: "A graphical representation of a microphone's sensitivity to sound from different angles.", context: "Essential for choosing and placing the right mic.", related: ["Cardioid", "Omnidirectional", "Shotgun Mic", "Unidirectional Microphone"], category: "Gear & Formats" },
+                "Polarity": { definition: "The positive or negative orientation of a waveform. Inverting the polarity is a common tool for fixing phase issues.", context: "The polarity invert button is often labeled with the symbol '∅'.", related: ["Phase", "Cancellation"], category: "Acoustics & Physics" },
+                "Pop Filter": { definition: "A screen placed between a vocalist and a microphone to dissipate the energy of plosives.", context: "Essential for clean studio vocal recordings.", related: ["Plosive", "Windscreen"], category: "Gear & Formats" },
+                "Post-Production": { definition: "The final phase of filmmaking after filming, including editing and sound work.", context: "Where the entire soundtrack is constructed.", related: ["ADR", "Foley", "Mix", "Sweetening"], category: "Workflow & Roles" },
+                "Post-synchronization": { definition: "A broad term for adding or replacing sound in post-production, including ADR and dubbing.", context: "The general category for syncing sound to picture after filming.", related: ["ADR", "Dubbing", "Sync"], category: "Workflow & Roles" },
+                "Pre-delay": { definition: "A parameter in a reverb effect that introduces a short delay before the reverberation begins, which can improve the clarity of the original sound.", context: "Helps separate the dry sound from the wash of reverb.", related: ["Reverb", "Delay"], category: "Processing & Effects" },
+                "Prelay": { definition: "The process of preparing and organizing sound elements before the final mix begins.", context: "Involves laying out dialogue, effects, and music tracks in the session.", related: ["Layback / Layover", "Post-Production"], category: "Workflow & Roles" },
+                "Pre-Production": { definition: "The planning and preparation phase of filmmaking that occurs before filming begins.", context: "Includes script analysis, location scouting, and initial sound design concepts.", related: ["Production", "Post-Production"], category: "Workflow & Roles" },
+                "Presence": { definition: "A subjective quality that makes a sound feel close, clear, and realistic.", context: "Often associated with a boost in the upper-midrange (2-5 kHz).", related: ["Bright", "EQ", "Midrange", "Clarity"], category: "Mixing & Editing" },
+                "Production": { definition: "The phase of filmmaking where principal photography (filming) takes place.", context: "The focus of this phase is capturing the visual performance and production sound.", related: ["Pre-Production", "Post-Production", "Production Sound"], category: "Workflow & Roles" },
+                "Production Dialogue": { definition: "The dialogue recorded on set during filming.", context: "Capturing clean production dialogue is the #1 priority of the on-set sound team.", related: ["ADR", "Dialogue", "Production Sound"], category: "Core Concepts" },
+                "Production Sound": { definition: "All audio recorded on set during filming.", context: "Includes dialogue, room tone, and wild tracks.", related: ["Boom Operator", "Lavalier Mic", "Wild Tracks", "Production"], category: "Workflow & Roles" },
+                "Project File": { definition: "The main file created by a software application (like a DAW) that contains all the data for a project.", context: "Another term for a Session file.", related: ["Session", "DAW"], category: "Workflow & Formats" },
+                "Props": { definition: "The category of Foley that involves the sound of any object a character interacts with.", context: "Another term for Specifics.", related: ["Foley", "Specifics"], category: "Sound Types" },
+                "Proximity Effect": { definition: "The increase in bass response from directional mics as they get closer to a source.", context: "Can be used creatively by announcers for a warm sound.", related: ["Bass", "Boomy", "Cardioid", "Omnidirectional"], category: "Technical Principles" },
+                "Psychoacoustics": { definition: "The study of the psychological and physiological responses to sound.", context: "The scientific foundation of sound design.", related: ["Cocktail Party Effect", "Haas Effect", "Localization", "Fletcher-Munson Curve"], category: "Narrative & Theory" },
+                "Punchy": { definition: "A subjective term for a sound with a strong, impactful attack.", context: "Achieved with EQ and Compression to enhance the transient.", related: ["Attack", "Compression", "Transient"], category: "Mixing & Editing" },
+                "Q": { definition: "In a parametric EQ, the parameter that determines the bandwidth of the filter.", context: "A high Q is for surgical cuts; a low Q is for broad tonal shaping.", related: ["Bandwidth", "EQ", "Parametric EQ"], category: "Processing & Effects" },
+                "Quantization": { definition: "In digital audio, the process of rounding the amplitude of an analog signal to the nearest available value at the current bit depth.", context: "This process can create quantization error (distortion), which dithering helps to mask.", related: ["Bit Depth", "Dither"], category: "Technical Principles" },
+                "Ratio": { definition: "A compressor parameter determining the amount of gain reduction.", context: "A low ratio (2:1) is gentle; a ratio of infinity:1 is Limiting.", related: ["Compression", "Knee", "Limiter", "Threshold"], category: "Processing & Effects" },
+                "Raw Footage": { definition: "The original, unedited footage and audio captured during production.", context: "The source material for the entire post-production process.", related: ["Production Sound", "Take", "Edited Master"], category: "Workflow & Formats" },
+                "Read Mode": { definition: "An automation mode where the system plays back existing automation data.", context: "The default mode for listening to an automated mix.", related: ["Automation", "Write Mode", "Update Mode"], category: "Mixing & Editing" },
+                "Reflection": { definition: "A sound wave bouncing off a surface.", context: "The basis of echo and reverb.", related: ["Echo", "Reverb", "Acoustics"], category: "Acoustics & Physics" },
+                "Release": { definition: "The final stage of a sound's envelope, the time it takes to fade to silence after the note is released.", context: "In a compressor, the release time determines how quickly it stops compressing after the signal drops below the threshold.", related: ["ADSR", "Envelope", "Compression", "Gate"], category: "Acoustics & Physics" },
+                "Release Print": { definition: "The final film print that is distributed to theaters for exhibition.", context: "Typically contains both digital and analog optical soundtracks.", related: ["Optical Sound"], category: "Workflow & Formats" },
+                "Rendering": { definition: "A term from film sound theorist Michel Chion for the use of sounds to convey the feelings or effects associated with the situation on screen, rather than a literal depiction of the sound source.", context: "The sound renders the character's internal state for the audience. This is a powerful, non-literal storytelling technique.", related: ["Added Value", "Emotional Realism", "Hyper-real Sound"], category: "Narrative & Theory" },
+                "Re-recording Mixer": { definition: "The audio engineer responsible for the final mix of a film.", context: "Blends all sound elements on a dub stage.", related: ["Dub Stage", "Mix"], category: "Workflow & Roles" },
+                "Reverb": { definition: "An effect that simulates the complex reflections of sound in a space.", context: "Used to place sounds in a believable acoustic environment.", related: ["Acoustics", "Decay", "Delay", "Echo", "Pre-delay"], category: "Processing & Effects" },
+                "Rhythm": { definition: "The arrangement of sounds in time; the pattern of strong and weak beats.", context: "A key element of music and editing that can drive the pace of a scene.", related: ["Tempo", "Music"], category: "Core Concepts" },
+                "Ribbon Microphone": { definition: "A type of dynamic microphone using a thin metal ribbon, known for its warm, natural sound and bidirectional pattern.", context: "Prized for vocals and instruments but can be more fragile than other mic types.", related: ["Bidirectional", "Dynamic Microphone", "Condenser Microphone"], category: "Gear & Formats" },
+                "Ride the Gain": { definition: "A slang term for the act of manually and continuously adjusting the faders on a mixing console to control the volume levels of various tracks during a mix.", context: "Before automation, this was how all dynamic mixes were created.", related: ["Automation", "Fader", "Mix"], category: "Mixing & Editing" },
+                "Riser": { definition: "A sound effect that steadily increases in pitch and/or volume to build tension.", context: "A staple of horror films and movie trailers to create anticipation.", related: ["Stinger", "Tension", "Drone"], category: "Sound Types" },
+                "RMS (Root Mean Square)": { definition: "A mathematical calculation used to determine the average level of an audio signal over time.", context: "Corresponds more closely to our perception of loudness than a Peak meter.", related: ["Loudness", "LUFS", "Peak", "Decibel (dB)"], category: "Technical Principles" },
+                "Rolloff": { definition: "A gradual decrease in frequency response at the upper or lower end of the spectrum.", context: "A 'bass rolloff' is often achieved with a High-Pass Filter.", related: ["Filter", "High-Pass Filter", "Low-Pass Filter"], category: "Processing & Effects" },
+                "Room Modes": { definition: "Resonant frequencies that are naturally amplified in an enclosed space due to the room's dimensions, creating Standing Waves.", context: "A major problem in untreated rooms, causing uneven bass response.", related: ["Acoustics", "Bass Trap", "Standing Wave", "Boomy"], category: "Acoustics & Physics" },
+                "Room Tone": { definition: "The unique, ambient sound of a specific quiet location.", context: "Indispensable for smoothing dialogue edits and preventing digital silence.", related: ["Ambience", "Noise Floor", "Presence", "Background Noise"], category: "Technical Principles" },
+                "Routing": { definition: "The process of directing the signal flow of audio from one place to another within a mixing console or DAW, such as from an individual channel to a Bus or an output.", context: "The virtual wiring of a digital audio system.", related: ["Bus", "Channel", "I/O", "Send"], category: "Mixing & Editing" },
+                "Rumble": { definition: "A low-frequency noise or vibration, often caused by mechanical or environmental factors like air conditioning systems or traffic.", context: "Typically removed using a High-Pass Filter.", related: ["Noise", "Bass", "High-Pass Filter"], category: "Technical Principles" },
+                "Sample": { definition: "In digital audio, a sample is a single measurement of a waveform's amplitude at a specific point in time. It is also used to refer to a short piece of pre-existing audio used as a sound element in a new composition.", context: "Digital audio is created by taking thousands of these samples per second.", related: ["Bit Depth", "DAW", "Sample Rate", "Sampler"], category: "Technical Principles" },
+                "Sample Rate": { definition: "The number of samples of audio taken per second, measured in Hertz (Hz) or kilohertz (kHz). The sample rate determines the frequency range that can be captured in a digital recording.", context: "Professional audio for film and video is typically recorded at 48 kHz or higher.", related: ["Bit Depth", "Digital Audio", "Frequency", "Nyquist Frequency", "Sample"], category: "Technical Principles" },
+                "Sampler": { definition: "An electronic instrument or software plugin that records, stores, and plays back audio samples.", context: "Sound designers use samplers to manipulate recordings and create new sounds.", related: ["DAW", "MIDI", "Plugin", "Sample", "Zone"], category: "Gear & Formats" },
+                "Saturation": { definition: "A mild and often pleasing form of distortion that adds harmonics to an audio signal.", context: "Characteristic of analog equipment like tape machines and vacuum tubes when they are driven hard.", related: ["Analog", "Clipping", "Distortion", "Harmonics", "Warmth"], category: "Processing & Effects" },
+                "Score": { definition: "The original music composed for a film. Also called an Underscore.", context: "A key non-diegetic element that sets tone and guides emotion.", related: ["Cue", "Motif", "Source Music", "Temp Score", "Music (MX)"], category: "Core Concepts" },
+                "Scrubbing": { definition: "The action of moving the playhead or cursor across an audio or video timeline manually to listen to the content at a variable speed.", context: "Used to find a precise edit point.", related: ["DAW", "Edit", "Timeline"], category: "Mixing & Editing" },
+                "Segue": { definition: "A seamless transition from one piece of music or sound effect to another without any intervening silence.", context: "In film scoring, a segue is when one musical cue flows directly into the next.", related: ["Crossfade", "Cue", "Edit", "Transition"], category: "Mixing & Editing" },
+                "Sel Sync": { definition: "Selective Synchronous recording. A tape machine function allowing overdubbing in sync by using the record head for playback.", context: "A revolutionary feature in the analog era that made multitrack recording practical.", related: ["Overdubbing", "Multitrack Recording"], category: "Workflow & Roles" },
+                "Send": { definition: "A control on a mixing console or DAW that creates a copy of a channel's signal and routes it to an auxiliary ( Aux ) bus.", context: "Typically used to send signals to shared effects processors like reverb or delay.", related: ["Auxiliary Track", "Bus", "Effects", "Parallel Processing", "Routing"], category: "Mixing & Editing" },
+                "Sequencer": { definition: "A device or software that can record, edit, and play back a sequence of MIDI or audio data.", context: "The heart of most DAWs for arranging music and sound.", related: ["MIDI", "DAW", "Virtual Instrument"], category: "Gear & Formats" },
+                "Session": { definition: "The project file within a DAW containing all audio tracks and edits.", context: "The master session is created from the AAF from the picture editor.", related: ["DAW", "AAF", "Project File"], category: "Workflow & Formats" },
+                "Shelving EQ": { definition: "A type of equalizer that boosts or cuts all frequencies above (a high shelf) or below (a low shelf) a specified frequency by a constant amount.", context: "Great for making broad tonal adjustments, like adding 'air' or reducing rumble.", related: ["Air", "EQ", "Filter"], category: "Processing & Effects" },
+                "Shotgun Mic": { definition: "A highly directional microphone designed to reject sound from the sides.", context: "The primary type of microphone used on a boom pole.", related: ["Boom Operator", "Cardioid", "Polar Pattern", "Supercardioid", "Hypercardioid"], category: "Gear & Formats" },
+                "Sibilance": { definition: "The harsh, high-frequency hissing sound produced by consonants like 's', 'sh', and 't' in vocal recordings.", context: "Can be very distracting and is controlled with a De-Esser.", related: ["De-Esser", "Dialogue", "EQ", "Harsh", "Fizz"], category: "Technical Principles" },
+                "Sidechain": { definition: "A feature on a dynamics processor (like a compressor or gate) that allows it to be triggered by an external audio signal instead of the signal it is actually processing.", context: "Used for effects like 'ducking' music under dialogue.", related: ["Compression", "Ducking", "Dynamics", "Gate"], category: "Processing & Effects" },
+                "Signal Flow": { definition: "The path an audio signal takes from its source through various pieces of equipment to its final destination.", context: "Fundamental for troubleshooting and setting up complex recording and mixing sessions.", related: ["Routing", "Bus", "Channel", "I/O"], category: "Technical Principles" },
+                "Signal-to-Noise Ratio (S/N)": { definition: "The ratio, measured in decibels, between the level of the desired audio signal and the level of the inherent background noise of a system.", context: "A higher S/N ratio indicates a cleaner signal.", related: ["Dynamic Range", "Gain", "Noise", "Noise Floor"], category: "Technical Principles" },
+                "Sine Wave": { definition: "A pure tone with no harmonics or overtones.", context: "The most basic building block of sound, used for test tones and in synthesis.", related: ["Frequency", "Fundamental", "Harmonics", "Oscillator", "Synthesis"], category: "Acoustics & Physics" },
+                "Single-System Recording": { definition: "A method of recording where the picture and sound are captured simultaneously on the same medium, such as recording audio directly into the video camera.", context: "Common in news gathering but avoided in professional filmmaking due to lower audio quality.", related: ["Double-System Recording", "Sync"], category: "Workflow & Roles" },
+                "Slap Back": { definition: "A specific type of echo effect characterized by a single, quick, and distinct repeat of a sound.", context: "A defining sound of 1950s rock and roll, created with a short delay.", related: ["Delay", "Echo", "Reverb"], category: "Processing & Effects" },
+                "Slate": { definition: "A board with a hinged clapstick on top, used at the beginning of each take. Also known as a Clapslate.", context: "Provides a sync point for separate picture and sound recordings.", related: ["Clapslate", "Sync", "Take"], category: "Workflow & Formats" },
+                "Smash": { definition: "An onomatopoeic sound effect for a violent, breaking collision.", context: "A more intense version of a crash.", related: ["Crash", "Impact", "Hit", "Onomatopoeia"], category: "Sound Types" },
+                "SMPTE Time Code": { definition: "A standardized timing signal used to synchronize audio and video equipment.", context: "The backbone of modern post-production, assigning a unique address to each video frame.", related: ["DAW", "Frame Rate", "Sync", "Timecode"], category: "Technical Principles" },
+                "Solo": { definition: "A function on a mixing console or DAW that allows a user to listen to a single channel or a group of channels in isolation, temporarily muting all other channels.", context: "An essential tool for focusing on a specific sound element during a mix.", related: ["Channel", "Console", "DAW", "Mix", "Mute"], category: "Mixing & Editing" },
+                "Sonic Texture": { definition: "The perceived quality and density of a soundscape.", context: "Can be 'thick' with many layers or 'sparse.'", related: ["Soundscape", "Ambience", "Mixing", "Texture"], category: "Narrative & Theory" },
+                "Sound Bridge": { definition: "A technique where sound from one scene carries over into the next.", context: "Creates a smooth transition or a thematic link between scenes.", related: ["Asynchronous Sound", "Jump Cut", "J-Cut", "L-Cut"], category: "Mixing & Editing" },
+                "Sound Design": { definition: "The art and practice of creating the overall sonic character of a production.", context: "A creative discipline that involves specifying, acquiring, or generating all audio elements to serve the story.", related: ["Audio Post-Production", "Foley", "Mix", "Soundscape", "Sound Designer"], category: "Core Concepts" },
+                "Sound Designer": { definition: "The individual responsible for a production's overall sonic character and vision.", context: "Oversees the entire audio post-production process and often creates key sound effects.", related: ["Sound Design", "Supervising Sound Editor"], category: "Workflow & Roles" },
+                "Sound Envelope": { definition: "The characteristic shape of a sound's amplitude over time (ADSR).", context: "Another term for Envelope.", related: ["ADSR", "Envelope"], category: "Acoustics & Physics" },
+                "Sound Effects (SFX)": { definition: "Every sound in a film that is not dialogue, music, or Foley.", context: "A vast category including backgrounds, hard effects, and designed effects.", related: ["Backgrounds (BGs)", "Hard Effects", "Foley"], category: "Core Concepts" },
+                "Soundscape": { definition: "The total acoustic environment of a scene.", context: "A carefully composed soundscape defines a place and establishes a mood.", related: ["Acoustics", "Ambience", "Imaging", "Sonic Texture"], category: "Narrative & Theory" },
+                "Sound Wave": { definition: "A vibration that propagates as an acoustic wave, through a transmission medium such as a gas, liquid or solid.", context: "Characterized by properties like frequency, amplitude, and wavelength.", related: ["Acoustics", "Frequency", "Wavelength", "Waveform"], category: "Acoustics & Physics" },
+                "Source Music": { definition: "Music that originates from a source within the film's world.", context: "It is diegetic, meaning the characters can hear it.", related: ["Diegetic Sound", "Score", "Music (MX)"], category: "Narrative & Theory" },
+                "Spatial Audio": { definition: "Technologies that create an immersive, 3D sound experience by positioning sounds as objects around the listener.", context: "Powered by formats like Dolby Atmos and DTS:X.", related: ["3D Audio", "Immersive Audio", "Object-Based Audio", "Surround Sound"], category: "Gear & Formats" },
+                "Spatial Magnetization": { definition: "The psychoacoustic effect where sound is 'magnetized' to a visual source on screen, guided by panning.", context: "The reason we perceive an actor's voice as coming from their position on screen, not from the nearest speaker.", related: ["Panning", "Psychoacoustics", "Imaging"], category: "Narrative & Theory" },
+                "Speaker": { definition: "A transducer that converts an electrical audio signal into sound.", context: "Studio monitors are specialized speakers designed for accuracy.", related: ["Monitor", "Subwoofer"], category: "Gear & Formats" },
+                "Specifics": { definition: "The category of Foley that covers the sound of any prop a character interacts with.", context: "Also known as Props.", related: ["Foley", "Props"], category: "Sound Types" },
+                "Spotting Session": { definition: "A meeting where the director and sound team decide where to place sound cues.", context: "The notes from this session become the Cue Sheet.", related: ["Cue", "Cue Sheet"], category: "Workflow & Roles" },
+                "Standing Wave": { definition: "A resonance pattern in a room where a sound wave reflects back on itself, causing peaks and nulls at specific locations.", context: "The cause of Room Modes.", related: ["Room Modes", "Acoustics", "Wavelength"], category: "Acoustics & Physics" },
+                "Stems": { definition: "The primary categories of a soundtrack (Dialogue, Music, Effects, Foley).", context: "This separation is critical for creative control in the mix.", related: ["Dialogue", "Music (MX)", "Sound Effects (SFX)", "Foley", "Sub-mix"], category: "Core Concepts" },
+                "Stereo": { definition: "A two-channel audio system that creates the illusion of a multi-dimensional soundstage.", context: "Allows a mixer to use Panning to place sounds in the horizontal field.", related: ["Imaging", "Mono", "Panning", "Surround Sound"], category: "Technical Principles" },
+                "Stinger": { definition: "A short, sharp, and dramatic musical cue or sound effect to punctuate a moment.", context: "Often used in trailers to add impact to a title card or a dramatic reveal.", related: ["Braam", "Cue", "Hit", "Impact", "Riser"], category: "Sound Types" },
+                "Studio": { definition: "A room designed for the recording of sound.", context: "Can be a large scoring stage, a Foley stage, or a small vocal booth.", related: ["Control Room", "Acoustics"], category: "Workflow & Roles" },
+                "Sub-mix": { definition: "A mix of a group of related tracks (e.g., all drum mics) before they are sent to the final mix bus.", context: "Often routed through a bus, this is another term for a stem within a mix session.", related: ["Bus", "Stems", "Mix"], category: "Mixing & Editing" },
+                "Subwoofer": { definition: "A loudspeaker designed exclusively to reproduce very low-frequency sounds (bass).", context: "Handles the LFE channel in a surround sound system.", related: ["Bass", "Crossover", "LFE", "Surround Sound"], category: "Gear & Formats" },
+                "Supercardioid": { definition: "A microphone polar pattern more directional than cardioid, with a small rear lobe of sensitivity.", context: "Offers greater side rejection than a cardioid, making it useful in noisy environments.", related: ["Cardioid", "Hypercardioid", "Polar Pattern", "Shotgun Mic"], category: "Gear & Formats" },
+                "Supervising Sound Editor": { definition: "The head of the sound editorial department, responsible for the organization and execution of the sound edit.", context: "Manages the teams of dialogue editors, effects editors, and Foley artists.", related: ["Sound Designer", "Post-Production"], category: "Workflow & Roles" },
+                "Surround Sound": { definition: "An audio system using multiple channels to envelop the listener in a 360-degree sound field (e.g., 5.1, 7.1).", context: "Creates a more immersive and realistic soundscape than stereo.", related: ["5.1", "7.1", "Dolby Atmos", "Immersive Audio", "Spatial Audio"], category: "Gear & Formats" },
+                "Sustain": { definition: "The part of a sound's envelope where the sound maintains a constant level while a note is held.", context: "A key parameter in shaping sounds with synthesizers.", related: ["ADSR", "Envelope", "Attack", "Decay", "Release"], category: "Acoustics & Physics" },
+                "Sweetening": { definition: "A slang term for the post-production process of enhancing a soundtrack by adding final audio elements to create a more polished mix.", context: "The final touches that make a mix sound professional.", related: ["Foley", "Mix", "Post-Production", "Sound Design"], category: "Workflow & Roles" },
+                "Sweet Spot": { definition: "The optimal listening position in a control room, equidistant from the left and right speakers.", context: "The location where the stereo image is most accurate.", related: ["Monitor", "Imaging", "Acoustics"], category: "Acoustics & Physics" },
+                "Swish": { definition: "An onomatopoeic sound effect for fast movement through air, similar to a whoosh.", context: "Often has a higher-pitched character than a whoosh.", related: ["Whoosh", "Onomatopoeia", "Pass By"], category: "Sound Types" },
+                "Sync": { definition: "The precise alignment of audio and picture.", context: "Maintaining sync is a fundamental technical requirement of filmmaking.", related: ["Clapslate", "Double-System Recording", "Lip Sync", "Timecode"], category: "Technical Principles" },
+                "Synchresis": { definition: "The brain's tendency to forge a connection between a sound and a simultaneous visual event.", context: "The neurological magic that makes Foley work.", related: ["Added Value", "Audiovisual Contract"], category: "Narrative & Theory" },
+                "Synchronous Sound": { definition: "Sound that is matched temporally with the movements in the image.", context: "The opposite of Asynchronous Sound.", related: ["Asynchronous Sound", "Lip Sync", "Synchresis"], category: "Narrative & Theory" },
+                "Synthesis": { definition: "The technique of generating sound using electronic hardware or software.", context: "The basis for creating designed effects and electronic music.", related: ["Oscillator", "Sine Wave", "Virtual Instrument"], category: "Processing & Effects" },
+                "Take": { definition: "A single continuous recorded performance of a scene.", context: "The director will call for multiple takes, and the editor selects the best parts from each.", related: ["Raw Footage", "Slate", "Wrap"], category: "Workflow & Roles" },
+                "Talkback": { definition: "An intercom system that allows the engineer or director in the control room to communicate with the performers in the studio or on the recording stage.", context: "A crucial communication tool during any recording session.", related: ["ADR", "Console", "Control Room", "Studio"], category: "Workflow & Roles" },
+                "Tape Saturation": { definition: "The pleasant, warm distortion and natural compression that occurs when recording to analog tape at a high level.", context: "A sought-after characteristic of analog recording, often emulated with plugins.", related: ["Analog", "Distortion", "Harmonics", "Saturation", "Warmth"], category: "Processing & Effects" },
+                "Temp Love": { definition: "When the director or editor becomes so attached to the temporary music that they have difficulty accepting the original score.", context: "A common professional challenge in film scoring.", related: ["Temp Score", "Score"], category: "Workflow & Roles" },
+                "Temp Score": { definition: "Pre-existing music used during editing to establish a rhythm and tone.", context: "Can lead to 'Temp Love,' a challenge for the composer.", related: ["Film Score", "Score", "Temp Love"], category: "Core Concepts" },
+                "Tempo": { definition: "The speed or pace of a piece of music, typically measured in BPM (Beats Per Minute).", context: "A fast tempo can create excitement or urgency, while a slow tempo can create a sense of calm or sadness.", related: ["BPM", "Music", "Rhythm", "Score"], category: "Core Concepts" },
+                "Tension": { definition: "A feeling of emotional or mental strain, often built in film through sound design and music.", context: "Risers, drones, and dissonant music are common tools for building tension.", related: ["Riser", "Drone", "Score"], category: "Narrative & Theory" },
+                "Texture (Sonic Texture)": { definition: "A term describing the perceived quality and density of a soundscape, resulting from the interplay of its various layers and timbres. A sound can be described as having a 'thick,' 'sparse,' 'gritty,' or 'smooth' texture.", context: "Sonic texture is a key element of sound design.", related: ["Ambience", "Drone", "Layering", "Soundscape", "Timbre"], category: "Narrative & Theory" },
+                "Theme": { definition: "A recognizable melody or musical idea that represents a character, place, or idea in a film; a more developed form of a motif.", context: "The 'Imperial March' is Darth Vader's theme.", related: ["Motif", "Score"], category: "Narrative & Theory" },
+                "Thin": { definition: "A subjective term for a sound or mix that lacks low-frequency content.", context: "The opposite of 'full' or 'warm'.", related: ["Bass", "EQ", "Warmth"], category: "Mixing & Editing" },
+                "THX": { definition: "A set of high-fidelity audio/visual reproduction standards for movie theaters, screening rooms, and home entertainment systems.", context: "A quality assurance system, not a recording format, ensuring the filmmaker's intent is preserved.", related: ["Calibration", "Dolby", "Monitor", "Surround Sound"], category: "Gear & Formats" },
+                "Threshold": { definition: "A parameter on a dynamics processor, such as a compressor or gate, that sets the level at which the processor will begin to act on the signal.", context: "The key to controlling when a compressor or gate activates.", related: ["Compression", "Dynamics", "Gate", "Knee", "Ratio"], category: "Processing & Effects" },
+                "Timbre": { definition: "The unique tonal quality or character of a sound that distinguishes it from other sounds of the same pitch and loudness.", context: "Determined by the harmonic content of a sound wave.", related: ["Coloration", "Frequency", "Harmonics", "Pitch", "Texture"], category: "Acoustics & Physics" },
+                "Time-Based Effects": { definition: "Audio effects that manipulate time, such as delay, reverb, chorus, and flanging.", context: "Essential for creating a sense of space and dimension in a mix.", related: ["Delay", "Reverb", "Chorus", "Flanging"], category: "Processing & Effects" },
+                "Timecode": { definition: "A coded signal that assigns a unique address (in hours, minutes, seconds, and frames) to each frame of video or point in time of an audio recording.", context: "Essential for all modern post-production workflows.", related: ["DAW", "Frame Rate", "SMPTE Time Code", "Sync"], category: "Technical Principles" },
+                "Timeline": { definition: "In a DAW or NLE, the graphical representation of a project's media over time.", context: "Where editors arrange and manipulate audio and video clips.", related: ["DAW", "Edit", "Scrubbing"], category: "Mixing & Editing" },
+                "Track": { definition: "In a DAW or on a multitrack recorder, a single, linear recording space that holds an audio or MIDI performance.", context: "A complete production is made up of many parallel tracks.", related: ["Channel", "DAW", "Mix", "Multitrack Recording", "Session"], category: "Mixing & Editing" },
+                "Transient": { definition: "The initial, high-energy, short-duration peak at the beginning of a sound's waveform, such as the crack of a snare drum or the pluck of a guitar string.", context: "Crucial to a sound's sense of impact and 'punch.'", related: ["Attack", "Compression", "Envelope", "Punchy"], category: "Acoustics & Physics" },
+                "Transition": { definition: "Any method used to move from one shot or scene to the next.", context: "Sound bridges and crossfades are common audio transitions.", related: ["Crossfade", "Segue", "Sound Bridge"], category: "Mixing & Editing" },
+                "Treble": { definition: "The higher range of the audible frequency spectrum, typically considered to be from approximately 5 kHz upwards.", context: "Contributes to a sound's brightness, clarity, and 'air.'", related: ["Air", "Bright", "EQ", "Frequency", "Sibilance"], category: "Acoustics & Physics" },
+                "Tremolo": { definition: "A musical effect consisting of a regular, pulsating change of volume.", context: "Different from vibrato, which changes pitch.", related: ["Vibrato", "Modulation", "LFO"], category: "Processing & Effects" },
+                "Trim": { definition: "A control on a mixing console or audio interface that adjusts the input Gain of a signal before it reaches the channel fader.", context: "The first stage of gain staging.", related: ["Clipping", "Gain", "Gain Staging", "Level"], category: "Technical Principles" },
+                "TRS": { definition: "Tip-Ring-Sleeve. A type of audio connector that can carry balanced mono or unbalanced stereo signals.", context: "Commonly used for headphones and connecting professional line-level gear.", related: ["Balanced Line", "Unbalanced Line", "Connector"], category: "Gear & Formats" },
+                "Turnover": { definition: "The process of delivering picture, sound, and associated data from the picture editing department to the sound and other post-production departments.", context: "The formal handoff that kicks off the audio post-production schedule.", related: ["AAF", "Post-Production"], category: "Workflow & Roles" },
+                "Unbalanced Line": { definition: "An audio cable that uses two conductors (signal and ground) that is susceptible to noise.", context: "Common in consumer audio (RCA cables) and for instruments.", related: ["Balanced Line", "Hum", "Interference", "Noise"], category: "Gear & Formats" },
+                "Underscore": { definition: "Another term for the Score or background music in a film.", context: "Emphasizes the music's supportive role, enhancing the narrative without drawing attention to itself.", related: ["Film Score", "Music (MX)", "Non-Diegetic Sound", "Score"], category: "Core Concepts" },
+                "Unidirectional Microphone": { definition: "A microphone that is most sensitive to sound arriving from one direction (the front) while rejecting sound from other directions.", context: "Cardioid is the most common type of unidirectional pattern.", related: ["Cardioid", "Directional Microphone", "Hypercardioid", "Polar Pattern", "Supercardioid"], category: "Gear & Formats" },
+                "Unity Gain": { definition: "A setting on an audio device where the output signal level is exactly equal to the input signal level.", context: "An important reference point in gain staging, often marked with a 'U' or '0' on a fader.", related: ["Fader", "Gain", "Gain Staging", "Level"], category: "Technical Principles" },
+                "Update Mode": { definition: "An automation mode in an automated mixing system that allows a mixer to adjust a previously automated parameter without erasing the automation for all the other parameters on that track.", context: "Allows for detailed and iterative refinement of a mix.", related: ["Automation", "DAW", "Mix", "Read Mode", "Write Mode"], category: "Mixing & Editing" },
+                "Variable Area": { definition: "A type of optical sound track where the width of the clear area varies with the sound's amplitude.", context: "One of the two main methods for creating an analog optical soundtrack on film.", related: ["Optical Sound"], category: "Gear & Formats" },
+                "VCA Compressor": { definition: "A type of compressor that uses a Voltage-Controlled Amplifier (VCA) as its gain-reduction element.", context: "Known for being fast, precise, and transparent, making it a versatile tool for many mixing tasks.", related: ["Compression", "FET Compressor", "Glue", "Optical Compressor"], category: "Processing & Effects" },
+                "Velocity": { definition: "In MIDI, a measure of how hard a key on a keyboard or a pad on a drum machine is struck.", context: "Typically controls volume but can be mapped to other parameters for expressive performances.", related: ["Aftertouch", "MIDI", "Sequencer", "Virtual Instrument", "Zone"], category: "Gear & Formats" },
+                "Vibrato": { definition: "A musical effect consisting of a regular, pulsating change of pitch.", context: "Used to add expression and warmth to vocal and instrumental notes.", related: ["LFO", "Modulation", "Pitch", "Tremolo"], category: "Processing & Effects" },
+                "Virtual Instrument": { definition: "A software-based synthesizer or sampler that generates audio.", context: "Triggered by MIDI data from a sequencer or controller.", related: ["Plugin", "MIDI", "Sampler", "Synthesis"], category: "Gear & Formats" },
+                "VITC (Vertical Interval Time Code)": { definition: "A form of SMPTE time code that is recorded into the vertical blanking interval of a video signal.", context: "Unlike LTC, VITC can be read even when the tape is paused.", related: ["LTC", "SMPTE Time Code", "Timecode"], category: "Technical Principles" },
+                "Vococentrism": { definition: "The principle that acknowledges the inherent privilege of the human voice in media.", context: "Our brains are hardwired to prioritize the voice, so dialogue clarity is paramount.", related: ["Dialogue", "Clarity", "Mixing"], category: "Narrative & Theory" },
+                "Voiceover (VO)": { definition: "Narration where the speaker is not seen on screen. A form of non-diegetic sound.", context: "A common storytelling device in documentaries and to provide a character's internal thoughts.", related: ["Asynchronous Sound", "Dialogue", "Dubbing", "Narration", "Non-Diegetic Sound"], category: "Sound Types" },
+                "Volume": { definition: "A general, subjective term for the perceived loudness or amplitude of a sound.", context: "In pro audio, 'gain' and 'level' are more technical terms for signal strength within the chain.", related: ["Amplitude", "Fader", "Gain", "Level", "Loudness"], category: "Technical Principles" },
+                "VST (Virtual Studio Technology)": { definition: "A popular plugin format developed by Steinberg.", context: "One of the most common standards for audio plugins on Windows and macOS.", related: ["Plugin", "DAW"], category: "Gear & Formats" },
+                "VU Meter": { definition: "A meter that measures the average level of an audio signal in Volume Units (VU).", context: "Designed to reflect the perceived loudness of the audio more closely than a peak meter.", related: ["Decibel (dB)", "Level", "Loudness", "Peak Meter"], category: "Gear & Formats" },
+                "Walla": { definition: "The unintelligible murmur of a crowd, created by a Loop Group.", context: "Used for the background sound in restaurants, parties, etc.", related: ["ADR", "Backgrounds (BGs)", "Loop Group"], category: "Sound Types" },
+                "Warmth": { definition: "A subjective term for a pleasingly full sound with rich low-mids, often associated with analog gear.", context: "Often the result of subtle, even-order harmonic distortion from tubes or tape.", related: ["Analog", "Bright", "Distortion", "Harmonics", "Saturation"], category: "Mixing & Editing" },
+                "Waveform": { definition: "A graphical representation of an audio signal's amplitude over time.", context: "The shape of the waveform determines the timbre of the sound.", related: ["Amplitude", "DAW", "Envelope", "Sine Wave", "Wavelength"], category: "Acoustics & Physics" },
+                "Wavelength": { definition: "The physical distance a sound wave travels during one complete cycle.", context: "Inversely proportional to frequency. Low frequencies have long wavelengths.", related: ["Acoustics", "Frequency", "Sound Wave", "Waveform"], category: "Acoustics & Physics" },
+                "White Noise": { definition: "A random signal with equal energy at every frequency.", context: "Sounds like a hiss. Used for testing equipment and in synthesis.", related: ["Frequency", "Noise", "Pink Noise", "Synthesis"], category: "Technical Principles" },
+                "Whoosh": { definition: "An onomatopoeic term for a sound effect that represents fast movement through the air.", context: "A staple of sound design in action films, sci-fi, and animation.", related: ["Hard Effect", "Onomatopoeia", "Pass By", "Swish"], category: "Sound Types" },
+                "Width": { definition: "The perceived spaciousness and spread of a stereo image.", context: "A mix with good width sounds wide and enveloping.", related: ["Imaging", "Mono", "Panning", "Stereo"], category: "Mixing & Editing" },
+                "Wild Tracks": { definition: "Non-synchronous sounds recorded on location without the camera rolling.", context: "Could be a cleaner take of a line or a specific prop sound.", related: ["Field Recording", "Production Sound"], category: "Workflow & Roles" },
+                "Windscreen": { definition: "A foam or fur cover for a microphone to reduce wind noise and plosives.", context: "The large, furry windscreens on boom mics are known as 'blimps' or 'dead cats.'", related: ["Blimp", "Boom Mic", "Plosive", "Pop Filter"], category: "Gear & Formats" },
+                "Worldizing": { definition: "A technique of playing a sound in a real acoustic space and re-recording it to capture the natural reverberation.", context: "Used to make studio-recorded sounds (like ADR) fit seamlessly into a scene.", related: ["ADR", "Acoustics", "Ambience", "Reverb"], category: "Workflow & Roles" },
+                "Wow": { definition: "A slow, periodic variation in pitch caused by inconsistent analog playback speed.", context: "Often emulated with plugins to create a vintage, 'lo-fi' character.", related: ["Analog", "Distortion", "Flutter", "Lo-Fi", "Pitch"], category: "Technical Principles" },
+                "Wrap": { definition: "A production term for the end of a day's filming or the end of the entire production.", context: "The call 'That's a wrap!' signals that work is finished for the day.", related: ["Production", "Shot", "Take"], category: "Workflow & Roles" },
+                "Write Mode": { definition: "An automation mode where initial fader movements are recorded for the first time.", context: "The first pass of an automated mix is done in write mode.", related: ["Automation", "DAW", "Mix", "Read Mode", "Update Mode"], category: "Mixing & Editing" },
+                "XLR": { definition: "A three-pin connector, the professional standard for balanced audio signals.", context: "Commonly used for microphones and for connecting professional audio equipment.", related: ["Balanced Line", "Connector", "Microphone"], category: "Gear & Formats" },
+                "XY Miking": { definition: "A coincident stereo miking technique using two directional mics angled apart.", context: "Creates a stereo image based on level differences and is highly mono-compatible.", related: ["Cardioid", "Coincident Miking", "Mono", "Phase", "Stereo"], category: "Gear & Formats" },
+                "Y-Cable": { definition: "A cable that splits one signal into two, or combines two into one.", context: "Useful for simple tasks like splitting a headphone output.", related: ["Cable", "Connector"], category: "Gear & Formats" },
+                "Zero Crossing": { definition: "The point where a waveform crosses the center line of zero amplitude.", context: "Edits should be made here to avoid clicks.", related: ["Click", "DAW", "Edit", "Waveform"], category: "Mixing & Editing" },
+                "Zone": { definition: "In a sampler, a range of notes or velocities assigned to trigger a specific sample.", context: "Used to create complex and realistic virtual instruments with different sounds for soft and hard hits.", related: ["MIDI", "Sampler", "Velocity", "Virtual Instrument"], category: "Gear & Formats" },
+            }
+        };
+
+
+        // --- DOM ELEMENT SELECTORS ---
+        const viewDashboard = document.getElementById('view-dashboard');
+        const viewReader = document.getElementById('view-reader');
+        const searchInput = document.getElementById('search-input');
+        const searchResultsContainer = document.getElementById('search-results-container');
+        const searchResults = document.getElementById('search-results');
+        const chapterCardsContainer = document.getElementById('chapter-cards-container');
+        const termOfTheDayCard = document.getElementById('term-of-the-day-card');
+        const azGridContainer = document.getElementById('az-grid-container');
+        const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+        const readerTitle = document.getElementById('reader-title');
+        const readerContent = document.getElementById('reader-content');
+        
+        const modalContainer = document.getElementById('modal-container');
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        const modalPanel = document.getElementById('modal-panel');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+
+        // Mind Map specific selectors
+        const viewMindMap = document.getElementById('view-mindmap');
+        const mindMapCard = document.getElementById('mind-map-card');
+        const mindMapBackBtn = document.getElementById('mindmap-back-btn');
+        const mindMapSearchInput = document.getElementById('mindmap-search-input');
+        const termsDatalist = document.getElementById('terms-datalist');
+
+
+        // --- APP STATE ---
+        let mindMapInitialized = false;
+        let currentMindMap = {};
+        let focusedCategory = null;
+
+        // --- APP LOGIC ---
+
+        function init() {
+            renderDashboard();
+            setupEventListeners();
+            renderCopyright();
+        }
+
+        function renderDashboard() {
+            renderChapterCards();
+            renderTermOfTheDay();
+            renderAZGrid();
+            populateMindMapSearchDatalist();
+        }
+
+        function populateMindMapSearchDatalist() {
+            const allTerms = Object.keys(soundData.dictionary).sort();
+            termsDatalist.innerHTML = allTerms.map(term => `<option value="${term}"></option>`).join('');
+        }
+
+        function renderChapterCards() {
+            const introCard = `<div class="glass-card rounded-lg p-6 hover:border-amber-500/50 transition-colors duration-300 cursor-pointer chapter-card" data-chapter="-1">
+                <h3 class="text-lg font-bold text-white">Introduction</h3>
+                <p class="text-sm text-slate-400 mt-2">The Language of the Unseen Art.</p>
+            </div>`;
+            const chapterCards = soundData.chapters.map((chapter, index) => `<div class="glass-card rounded-lg p-6 hover:border-amber-500/50 transition-colors duration-300 cursor-pointer chapter-card" data-chapter="${index}">
+                <h3 class="text-lg font-bold text-white">${chapter.title}</h3>
+                <p class="text-sm text-slate-400 mt-2">${chapter.description}</p>
+            </div>`).join('');
+            chapterCardsContainer.innerHTML = introCard + chapterCards;
+        }
+
+        function renderTermOfTheDay() {
+            const terms = Object.keys(soundData.dictionary);
+            const randomTermKey = terms[Math.floor(Math.random() * terms.length)];
+            const termData = soundData.dictionary[randomTermKey];
+            termOfTheDayCard.innerHTML = `<h3 class="font-bold text-white mb-2">Term of the Day</h3>
+                <h4 class="text-xl font-semibold text-amber-400 mb-2 cursor-pointer term-of-day-title" data-term="${randomTermKey}">${randomTermKey}</h4>
+                <p class="text-sm text-slate-400">${termData.definition}</p>`;
+        }
+
+        function renderAZGrid() {
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            azGridContainer.innerHTML = alphabet.map(letter => 
+                `<button class="az-letter-btn bg-slate-700/50 text-slate-300 hover:bg-amber-600 hover:text-white font-mono text-sm w-8 h-8 rounded-md transition-colors" data-letter="${letter}">${letter}</button>`
+            ).join('');
+        }
+        
+        function setupEventListeners() {
+            searchInput.addEventListener('input', handleSearch);
+            searchInput.addEventListener('focus', handleSearch);
+            document.addEventListener('click', (e) => {
+                if (!searchResultsContainer.contains(e.target) && e.target !== searchInput && !e.target.classList.contains('az-letter-btn')) {
+                    searchResultsContainer.classList.add('hidden');
+                }
+            });
+            searchResults.addEventListener('click', (e) => {
+                const item = e.target.closest('.search-result-item');
+                if (item) {
+                    showTermModal(item.dataset.term);
+                    searchInput.value = '';
+                    searchResultsContainer.classList.add('hidden');
+                }
+            });
+            chapterCardsContainer.addEventListener('click', (e) => {
+                const card = e.target.closest('.chapter-card');
+                if (card) showReaderView(parseInt(card.dataset.chapter));
+            });
+            backToDashboardBtn.addEventListener('click', showDashboardView);
+            termOfTheDayCard.addEventListener('click', (e) => {
+                if (e.target.classList.contains('term-of-day-title')) showTermModal(e.target.dataset.term);
+            });
+            azGridContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('az-letter-btn')) {
+                    handleAZClick(e.target.dataset.letter);
+                }
+            });
+            
+            mindMapCard.addEventListener('click', showMindMapView);
+            mindMapBackBtn.addEventListener('click', showDashboardView);
+            mindMapSearchInput.addEventListener('change', handleMindMapSearch); // Use 'change' for better datalist UX
+
+            // Dynamic term link clicks (in reader and modal)
+            document.body.addEventListener('click', (e) => {
+                if (e.target.classList.contains('term-link')) {
+                    e.preventDefault();
+                    showTermModal(e.target.dataset.key);
+                }
+            });
+            modalCloseBtn.addEventListener('click', hideTermModal);
+            modalBackdrop.addEventListener('click', hideTermModal);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !modalContainer.classList.contains('hidden')) hideTermModal();
+            });
+
+            // Pathfinding controls
+            d3.select("#find-path-btn").on("click", handleFindPath);
+            d3.select("#clear-path-btn").on("click", clearPath);
+
+            // Category filters
+            d3.select("#category-filters").on("change", handleCategoryFilterChange);
+            d3.select("#cat-filter-all").on("click", () => {
+                d3.selectAll(".category-filter-cb").property("checked", true);
+                handleCategoryFilterChange();
+            });
+            d3.select("#cat-filter-none").on("click", () => {
+                d3.selectAll(".category-filter-cb").property("checked", false);
+                handleCategoryFilterChange();
+            });
+        }
+        
+        function showReaderView(chapterIndex) {
+            const data = chapterIndex === -1 ? soundData.introduction : soundData.chapters[chapterIndex];
+            readerTitle.textContent = data.title;
+            const fullContent = data.content + (data.sections ? data.sections.map(s => s.content).join('') : '');
+            readerContent.innerHTML = `<h1>${data.title}</h1>${linkTermsInText(fullContent)}`;
+            viewDashboard.classList.add('hidden');
+            viewReader.classList.remove('hidden');
+            viewMindMap.classList.add('hidden');
+            window.scrollTo(0, 0);
+        }
+
+        function showDashboardView() {
+            viewReader.classList.add('hidden');
+            viewMindMap.classList.add('hidden');
+            viewDashboard.classList.remove('hidden');
+        }
+
+        function showMindMapView() {
+            viewDashboard.classList.add('hidden');
+            viewReader.classList.add('hidden');
+            viewMindMap.classList.remove('hidden');
+            if (!mindMapInitialized) {
+                const categories = [...new Set(Object.values(soundData.dictionary).map(d => d.category))];
+                renderCategoryFilters(categories);
+                mindMapInitialized = true;
+            }
+            handleCategoryFilterChange();
+        }
+
+        function handleSearch() {
+            const query = searchInput.value.trim().toLowerCase();
+            if (query.length > 0) {
+                const allTerms = Object.keys(soundData.dictionary);
+                const filteredTerms = allTerms.filter(term => term.toLowerCase().includes(query)).sort();
+                renderSearchResultsList(filteredTerms);
+            } else {
+                searchResultsContainer.classList.add('hidden');
+            }
+        }
+
+        function handleAZClick(letter) {
+            searchInput.value = ''; // Clear search for better UX
+            const termsStartingWithLetter = Object.keys(soundData.dictionary)
+                .filter(term => term.toUpperCase().startsWith(letter))
+                .sort();
+            renderSearchResultsList(termsStartingWithLetter);
+        }
+        
+        function renderSearchResultsList(results) {
+            if (results.length === 0) {
+                searchResults.innerHTML = `<p class="text-slate-400 p-4 text-center">No terms found.</p>`;
+            } else {
+                searchResults.innerHTML = results.map(term => {
+                    const definition = soundData.dictionary[term].definition;
+                    const firstSentence = definition.split('. ')[0] + '.';
+                    return `<div class="p-4 hover:bg-amber-500/10 cursor-pointer search-result-item rounded-md" data-term="${term}">
+                            <p class="font-bold text-white">${term}</p>
+                            <p class="text-sm text-slate-400 mt-1">${firstSentence}</p>
+                        </div>`;
+                }).join('');
+            }
+            searchResultsContainer.classList.remove('hidden');
+        }
+        
+        function linkTermsInText(text) {
+            if (!text) return '';
+            return text.replace(/<TermLink key='([^']+)'>([^<]+)<\/TermLink>/g, 
+                (match, key, content) => `<a href="#" class="term-link" data-key="${key}">${content}</a>`);
+        }
+        
+        function showTermModal(termKey) {
+            if (viewMindMap.classList.contains('hidden') === false) {
+                focusMindMapOnNode(termKey, false);
+            }
+            
+            if (!modalContainer.classList.contains('hidden')) {
+                modalPanel.style.opacity = '0';
+                modalPanel.style.transform = 'scale(0.98)';
+                setTimeout(() => {
+                    displayModalContent(termKey);
+                    modalPanel.style.opacity = '1';
+                    modalPanel.style.transform = 'scale(1)';
+                }, 150);
+            } else {
+                displayModalContent(termKey);
+                modalContainer.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    modalBackdrop.style.opacity = '1';
+                    modalPanel.style.opacity = '1';
+                    modalPanel.style.transform = 'scale(1)';
+                });
+            }
+        }
+
+        function displayModalContent(termKey) {
+            const term = soundData.dictionary[termKey];
+            if (!term) return;
+            modalTitle.textContent = termKey;
+            let contentHTML = `<div class="space-y-6">`;
+            contentHTML += `<div><h4 class="font-semibold text-slate-400 text-sm uppercase tracking-wider mb-2">Definition</h4><p class="text-slate-300 text-base">${linkTermsInText(term.definition)}</p></div>`;
+            if (term.context) contentHTML += `<div><h4 class="font-semibold text-slate-400 text-sm uppercase tracking-wider mb-2">Context & Insight</h4><p class="text-slate-300 text-base">${linkTermsInText(term.context)}</p></div>`;
+            if (term.category) contentHTML += `<div><h4 class="font-semibold text-slate-400 text-sm uppercase tracking-wider mb-2">Category</h4><p class="text-amber-400 text-base">${term.category}</p></div>`;
+            if (term.related && term.related.length > 0) contentHTML += `<div><h4 class="font-semibold text-slate-400 text-sm uppercase tracking-wider mb-2">Related Terms</h4><div class="flex flex-wrap gap-2">${term.related.map(relatedTerm => `<a href="#" class="term-link bg-slate-700 px-3 py-1 rounded-full text-sm hover:bg-slate-600" data-key="${relatedTerm}">${relatedTerm}</a>`).join('')}</div></div>`;
+            contentHTML += `</div>`;
+            modalContent.innerHTML = contentHTML;
+        }
+
+        function hideTermModal() {
+            modalBackdrop.style.opacity = '0';
+            modalPanel.style.opacity = '0';
+            modalPanel.style.transform = 'scale(0.95)';
+            setTimeout(() => modalContainer.classList.add('hidden'), 300);
+        }
+
+        // --- MIND MAP LOGIC ---
+
+        function renderCategoryFilters(categories) {
+            const container = d3.select("#category-filters");
+            container.selectAll("*").remove();
+            categories.sort().forEach(category => {
+                container.append("label")
+                    .html(`<input type="checkbox" class="category-filter-cb" value="${category}" checked> ${category}`);
+            });
+        }
+
+        function handleCategoryFilterChange() {
+            let currentTransform = d3.zoomIdentity;
+            if (currentMindMap.svg && d3.zoomTransform(currentMindMap.svg.node()).k !== 1) { // Persist zoom if user has interacted
+                currentTransform = d3.zoomTransform(currentMindMap.svg.node());
+            }
+
+            const selectedCategories = [];
+            d3.selectAll(".category-filter-cb").each(function() {
+                if (d3.select(this).property("checked")) {
+                    selectedCategories.push(d3.select(this).property("value"));
+                }
+            });
+            initMindMap(selectedCategories, currentTransform);
+        }
+        
+        function initMindMap(visibleCategories = null, initialTransform = null) {
+            if (currentMindMap.simulation) {
+                currentMindMap.simulation.stop();
+            }
+
+            const dictionary = soundData.dictionary;
+            const svg = d3.select("#mindmap-svg");
+            svg.selectAll("*").remove();
+            focusedCategory = null;
+
+            const allCategories = [...new Set(Object.values(dictionary).map(d => d.category))];
+            if (visibleCategories === null) visibleCategories = allCategories;
+
+            const filteredTermKeys = Object.keys(dictionary).filter(key => visibleCategories.includes(dictionary[key].category));
+            const categoryNodes = visibleCategories.map(c => ({ id: c, isCategory: true }));
+            const termNodes = filteredTermKeys.map(key => ({ id: key, category: dictionary[key].category }));
+            
+            let nodes = [...termNodes, ...categoryNodes];
+            let links = [];
+
+            termNodes.forEach(termNode => {
+                links.push({ source: termNode.id, target: termNode.category, isCategoryLink: true });
+            });
+            filteredTermKeys.forEach(sourceKey => {
+                if (dictionary[sourceKey].related) {
+                    dictionary[sourceKey].related.forEach(targetKey => {
+                        if (filteredTermKeys.includes(targetKey)) { 
+                            links.push({ source: sourceKey, target: targetKey });
+                        }
+                    });
+                }
+            });
+
+            const container = document.getElementById('mindmap-container');
+            const tooltip = d3.select("#tooltip");
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            svg.attr('width', width).attr('height', height);
+            
+            const simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links).id(d => d.id).distance(100).strength(d => d.isCategoryLink ? 0.1 : 0.4))
+                .force("charge", d3.forceManyBody().strength(-600))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collision", d3.forceCollide().radius(d => d.isCategory ? 35 : 25));
+            
+            const g = svg.append("g");
+            const link = g.append("g").selectAll("line").data(links).join("line").attr("class", d => d.isCategoryLink ? "link category" : "link");
+            const node = g.append("g").selectAll("g").data(nodes).join("g").attr("class", d => d.isCategory ? "node category" : "node");
+
+            node.append("circle").attr("r", d => d.isCategory ? 20 : 10).attr("fill", d => d.isCategory ? "#FBBF24" : "#4B5563");
+            node.append("text").text(d => d.id).attr('x', d => d.isCategory ? 0 : 15).attr('y', d => d.isCategory ? 32 : 4).style("text-anchor", d => d.isCategory ? "middle" : "start");
+            node.call(d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended));
+
+            node.on("mouseover", (event, d) => {
+                if (d.isCategory) return;
+                tooltip.style("opacity", 1).html(`<h3>${d.id}</h3><p>${dictionary[d.id].definition.split('. ')[0] + '.'}</p>`).style("left", (event.pageX + 15) + "px").style("top", (event.pageY - 28) + "px");
+                link.style('stroke', l => (l.source.id === d.id || l.target.id === d.id) ? '#F87171' : null).style('stroke-width', l => (l.source.id === d.id || l.target.id === d.id) ? '2px' : null);
+            }).on("mouseout", () => {
+                tooltip.style("opacity", 0);
+                link.style('stroke', null).style('stroke-width', null);
+            }).on("click", (event, d) => {
+                event.stopPropagation();
+                if (d.isCategory) {
+                    focusOnCategory(d.id);
+                } else {
+                    showTermModal(d.id);
+                }
+            });
+
+            simulation.on("tick", () => {
+                link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+                node.attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+
+            const zoom = d3.zoom().on("zoom", (event) => { g.attr("transform", event.transform); });
+            svg.call(zoom);
+
+            if(initialTransform) {
+                svg.call(zoom.transform, initialTransform);
+            } else {
+                 svg.call(zoom.transform, d3.zoomIdentity);
+            }
+
+
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x; d.fy = d.y;
+            }
+            function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null; d.fy = null;
+            }
+            
+            currentMindMap = { simulation, nodes, node, svg, zoom, g, links };
+        }
+
+        function handleMindMapSearch(event) {
+            const searchTerm = event.target.value;
+            focusMindMapOnNode(searchTerm);
+        }
+
+        function focusMindMapOnNode(searchTerm, shouldClearPath = true) {
+            const { nodes, svg, zoom } = currentMindMap;
+            if (!nodes) return;
+            const targetNodeData = nodes.find(n => n.id.toLowerCase() === searchTerm.toLowerCase() && !n.isCategory);
+            
+            if (shouldClearPath) {
+                clearPath();
+            }
+            d3.selectAll(".node, .link").classed("faded", false);
+            focusedCategory = null;
+            
+            if (targetNodeData && typeof targetNodeData.x === 'number') {
+                const d3Node = d3.selectAll(".node").filter(d => d.id === targetNodeData.id);
+                d3Node.select("circle").transition().duration(250).attr("r", 15).style("fill", "#F87171").transition().duration(250).attr("r", 10).style("fill", "#4B5563");
+                
+                const width = svg.node().clientWidth;
+                const height = svg.node().clientHeight;
+                const transform = d3.zoomIdentity.translate(width / 2, height / 2).scale(2).translate(-targetNodeData.x, -targetNodeData.y);
+                svg.transition().duration(750).call(zoom.transform, transform);
+            }
+        }
+        
+        function focusOnCategory(categoryName) {
+            const { node, link } = currentMindMap;
+
+            // Determine if we are un-focusing or focusing on a new category
+            const isUnfocusing = focusedCategory === categoryName;
+            
+            // Set the new focused category state
+            focusedCategory = isUnfocusing ? null : categoryName;
+
+            // If we are focusing (not un-focusing), clear any existing path highlights
+            if (!isUnfocusing) {
+                clearPath();
+            }
+
+            // Function to determine if a node should be faded
+            const isNodeFaded = (d) => {
+                if (isUnfocusing) return false; // If un-focusing, nothing is faded
+                if (d.isCategory) return d.id !== focusedCategory; // Fade other categories
+                return d.category !== focusedCategory; // Fade terms from other categories
+            };
+
+            // Apply fading classes
+            node.classed("faded", isNodeFaded);
+            link.classed("faded", d => isNodeFaded(d.source) || isNodeFaded(d.target));
+        }
+
+        function handleFindPath() {
+            const startNodeId = document.getElementById('path-start').value;
+            const endNodeId = document.getElementById('path-end').value;
+            findAndShowPath(startNodeId, endNodeId);
+        }
+
+        function findAndShowPath(startNodeId, endNodeId) {
+            clearPath();
+            const { nodes, links } = currentMindMap;
+            
+            if (!nodes || !soundData.dictionary[startNodeId] || !soundData.dictionary[endNodeId]) {
+                alert("Please select valid start and end terms from the list.");
+                return;
+            }
+            
+            const adjList = new Map();
+            links.forEach(l => {
+                const sourceId = l.source.id || l.source;
+                const targetId = l.target.id || l.target;
+                if (!adjList.has(sourceId)) adjList.set(sourceId, []);
+                if (!adjList.has(targetId)) adjList.set(targetId, []);
+                adjList.get(sourceId).push(targetId);
+                adjList.get(targetId).push(sourceId);
+            });
+
+            const queue = [[startNodeId]];
+            const visited = new Set([startNodeId]);
+            let path = null;
+
+            while (queue.length > 0) {
+                const currentPath = queue.shift();
+                const lastNode = currentPath[currentPath.length - 1];
+                if (lastNode === endNodeId) {
+                    path = currentPath;
+                    break;
+                }
+                const neighbors = adjList.get(lastNode) || [];
+                for (const neighbor of neighbors) {
+                    if (!visited.has(neighbor)) {
+                        visited.add(neighbor);
+                        const newPath = [...currentPath, neighbor];
+                        queue.push(newPath);
+                    }
+                }
+            }
+
+            if (path) {
+                const pathSet = new Set(path);
+                d3.selectAll(".node").classed("path", d => pathSet.has(d.id) && d.id !== startNodeId && d.id !== endNodeId);
+                d3.selectAll(".node").classed("path-endpoint", d => d.id === startNodeId || d.id === endNodeId);
+                
+                const pathLinks = new Set();
+                for(let i=0; i< path.length - 1; i++){
+                    pathLinks.add(`${path[i]}-${path[i+1]}`);
+                    pathLinks.add(`${path[i+1]}-${path[i]}`);
+                }
+                d3.selectAll(".link").classed("path", d => pathLinks.has(`${d.source.id}-${d.target.id}`));
+            } else {
+                alert("No direct path found between these terms.");
+            }
+        }
+        
+        function clearPath() {
+            d3.selectAll(".node").classed("path", false).classed("path-endpoint", false);
+            d3.selectAll(".link").classed("path", false);
+        }
+
+        function renderCopyright() {
+            const copyrightFooter = document.getElementById('copyright-footer');
+            if(copyrightFooter) {
+                const currentYear = new Date().getFullYear();
+                copyrightFooter.innerHTML = `&copy; ${currentYear} Mytchel Costa. All Rights Reserved.`;
+            }
+        }
+
+
+        init();
+    });
+    </script>
+</body>
+</html>
