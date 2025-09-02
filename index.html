@@ -8,11 +8,19 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        /* --- MODIFICATION START: Added styles to prevent body scroll and bounce --- */
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            overscroll-behavior-y: contain;
+        }
+        /* --- MODIFICATION END --- */
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #111827; /* Dark Grey */
             color: #D1D5DB; /* Light Grey */
-            overscroll-behavior-y: contain; /* Prevents pull-to-refresh */
+            /* overscroll-behavior-y: contain; is now on html, body */
         }
 
         /* Custom scrollbar */
@@ -64,8 +72,14 @@
         .content-prose ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1.25rem; }
         
         /* Mind Map Specific Styles */
-        #mindmap-container { position: relative; width: 100%; height: 100%; }
-        #mindmap-svg { cursor: grab; }
+        /* --- MODIFICATION START: Removed height: 100% as flex-grow will handle it --- */
+        #mindmap-container { position: relative; width: 100%; }
+        /* --- MODIFICATION END --- */
+
+        /* --- MODIFICATION START: Added display block and height 100% for robust sizing --- */
+        #mindmap-svg { cursor: grab; display: block; width: 100%; height: 100%; }
+        /* --- MODIFICATION END --- */
+        
         #mindmap-svg:active { cursor: grabbing; }
         .node circle { stroke: #FBBF24; stroke-width: 2px; transition: all 0.3s ease; cursor: pointer; }
         .node.category circle { stroke: #FBBF24; fill: #FBBF24; } /* Amber color for categories */
@@ -98,29 +112,28 @@
             height: var(--app-height, 100vh);
         }
         
-        #mindmap-header {
-            /* This is the key fix: Position the top of the header at the edge of the safe area */
-            top: constant(safe-area-inset-top, 0rem);
-            top: env(safe-area-inset-top, 0rem);
+        /* --- MODIFICATION START: Removed old #mindmap-header and #mindmap-search-container styles --- */
+        /* Old #mindmap-header styles removed */
+        /* Old #mindmap-search-container styles removed */
+        /* --- MODIFICATION END --- */
 
-            /* Apply padding, also respecting left/right safe areas */
+        /* --- MODIFICATION START: Added styles for the new bottom toolbar --- */
+        #mindmap-toolbar {
             padding: 1rem;
+            padding-bottom: calc(1rem + constant(safe-area-inset-bottom, 0rem));
+            padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0rem));
             padding-left: calc(1rem + constant(safe-area-inset-left, 0rem));
             padding-left: calc(1rem + env(safe-area-inset-left, 0rem));
             padding-right: calc(1rem + constant(safe-area-inset-right, 0rem));
             padding-right: calc(1rem + env(safe-area-inset-right, 0rem));
+            flex-shrink: 0; /* Prevent toolbar from shrinking */
         }
-
-        #mindmap-search-container {
-             bottom: calc(1rem + constant(safe-area-inset-bottom, 0rem));
-             bottom: calc(1rem + env(safe-area-inset-bottom, 0rem));
-             left: calc(50% + constant(safe-area-inset-left, 0rem) - constant(safe-area-inset-right, 0rem));
-             left: calc(50% + env(safe-area-inset-left, 0rem) - env(safe-area-inset-right, 0rem));
-        }
+        /* --- MODIFICATION END --- */
 
         #controls {
-            top: calc(5.5rem + constant(safe-area-inset-top, 0rem));
-            top: calc(5.5rem + env(safe-area-inset-top, 0rem));
+            /* Position controls relative to the top safe area now */
+            top: calc(1rem + constant(safe-area-inset-top, 0rem));
+            top: calc(1rem + env(safe-area-inset-top, 0rem));
             right: calc(1rem + constant(safe-area-inset-right, 0rem));
             right: calc(1rem + env(safe-area-inset-right, 0rem));
         }
@@ -260,35 +273,18 @@
         </div>
         
         <!-- View: Mind Map -->
-        <div id="view-mindmap" class="hidden dynamic-h-screen relative">
-            <div id="mindmap-container">
+        <!-- --- MODIFICATION START: Changed to a flex column layout to fix scrolling/spacing issues --- -->
+        <div id="view-mindmap" class="hidden dynamic-h-screen flex flex-col">
+            <!-- --- MODIFICATION START: Added flex-grow to make the map container fill available space --- -->
+            <div id="mindmap-container" class="flex-grow">
+            <!-- --- MODIFICATION END --- -->
                 <svg id="mindmap-svg"></svg>
             </div>
             <div id="tooltip"></div>
             
-            <!-- MODIFICATION: Removed p-4 from header class, CSS will handle padding now -->
-            <header id="mindmap-header" class="absolute top-0 left-0 w-full z-20 flex justify-between items-start">
-                <button id="mindmap-back-btn" class="glass-card rounded-lg p-3 flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-                    Dashboard
-                </button>
-                
-                <button id="toggle-controls-btn" class="lg:hidden glass-card rounded-lg p-3 text-amber-400 hover:text-amber-300 transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                       <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                </button>
-            </header>
-            
-            <div id="mindmap-search-container" class="absolute left-1/2 -translate-x-1/2 z-20">
-                <div class="relative">
-                    <input type="text" id="mindmap-search-input" list="terms-datalist" placeholder="Find term in map..." class="glass-card rounded-lg p-3 pl-10 text-sm text-white bg-transparent w-64 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
-                    </span>
-                    <datalist id="terms-datalist"></datalist>
-                </div>
-            </div>
+            <!-- --- MODIFICATION START: Removed old header and search bar from here --- -->
+            <!-- Old header and search bar elements were removed -->
+            <!-- --- MODIFICATION END --- -->
 
             <div id="controls" class="hidden lg:flex flex-col gap-4 glass-card rounded-lg p-3 absolute z-10 max-h-[calc(100vh-120px)] lg:max-h-[calc(100vh-100px)] overflow-y-auto">
                  <div class="control-group">
@@ -311,6 +307,32 @@
                     </div>
                 </div>
             </div>
+
+            <!-- --- MODIFICATION START: New bottom toolbar with all controls --- -->
+            <div id="mindmap-toolbar" class="w-full z-20 flex justify-between items-center gap-4">
+                <!-- Back Button (icon only) -->
+                <button id="mindmap-back-btn" class="glass-card rounded-lg p-3 flex-shrink-0 text-amber-400 hover:text-amber-300 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                </button>
+        
+                <!-- Search Input (new placeholder and layout) -->
+                <div class="relative flex-grow">
+                    <input type="text" id="mindmap-search-input" list="terms-datalist" placeholder="Find" class="glass-card rounded-lg p-3 pl-10 text-sm text-white bg-transparent w-full focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path></svg>
+                    </span>
+                    <datalist id="terms-datalist"></datalist>
+                </div>
+        
+                <!-- Toggle Controls/Gear Button -->
+                <button id="toggle-controls-btn" class="lg:hidden glass-card rounded-lg p-3 flex-shrink-0 text-amber-400 hover:text-amber-300 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                       <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </button>
+            </div>
+             <!-- --- MODIFICATION END --- -->
+
         </div>
 
     </div>
