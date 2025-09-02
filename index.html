@@ -12,6 +12,7 @@
             font-family: 'Inter', sans-serif;
             background-color: #111827; /* Dark Grey */
             color: #D1D5DB; /* Light Grey */
+            overscroll-behavior-y: contain; /* Prevents pull-to-refresh */
         }
 
         /* Custom scrollbar */
@@ -92,17 +93,18 @@
 
         /* --- MODIFICATION START: Dynamic Height & Safe Area Adjustments --- */
         
-        /* This class uses a JS-set variable to get the true inner height of the window, avoiding the 100vh issue on mobile */
         .dynamic-h-screen {
-            height: 100vh; /* Fallback for non-JS or older browsers */
+            height: 100vh; /* Fallback */
             height: var(--app-height, 100vh);
         }
-
-        /* This ensures UI elements are not hidden by the browser's address bar or device notches */
+        
         #mindmap-header {
-            /* Use constant() for older iOS versions, env() for modern browsers */
-            padding-top: calc(1rem + constant(safe-area-inset-top, 0rem));
-            padding-top: calc(1rem + env(safe-area-inset-top, 0rem));
+            /* This is the key fix: Position the top of the header at the edge of the safe area */
+            top: constant(safe-area-inset-top, 0rem);
+            top: env(safe-area-inset-top, 0rem);
+
+            /* Apply padding, also respecting left/right safe areas */
+            padding: 1rem;
             padding-left: calc(1rem + constant(safe-area-inset-left, 0rem));
             padding-left: calc(1rem + env(safe-area-inset-left, 0rem));
             padding-right: calc(1rem + constant(safe-area-inset-right, 0rem));
@@ -110,7 +112,6 @@
         }
 
         #mindmap-search-container {
-             /* Use constant() for older iOS versions, env() for modern browsers */
              bottom: calc(1rem + constant(safe-area-inset-bottom, 0rem));
              bottom: calc(1rem + env(safe-area-inset-bottom, 0rem));
              left: calc(50% + constant(safe-area-inset-left, 0rem) - constant(safe-area-inset-right, 0rem));
@@ -118,16 +119,14 @@
         }
 
         #controls {
-            /* Position controls below the header, respecting the safe area */
             top: calc(5.5rem + constant(safe-area-inset-top, 0rem));
             top: calc(5.5rem + env(safe-area-inset-top, 0rem));
             right: calc(1rem + constant(safe-area-inset-right, 0rem));
             right: calc(1rem + env(safe-area-inset-right, 0rem));
         }
         
-        @media (min-width: 1024px) { /* lg breakpoint */
+        @media (min-width: 1024px) { 
             #controls {
-                /* On larger screens, position it closer to the top edge */
                 top: calc(1.5rem + constant(safe-area-inset-top, 0rem));
                 top: calc(1.5rem + env(safe-area-inset-top, 0rem));
             }
@@ -154,14 +153,13 @@
         #controls button.secondary { background-color: #4B5563; }
         #controls button.secondary:hover { background-color: #6B7280; }
 
-        /* Styling for the collapsible section */
         details > summary {
-            list-style: none; /* Remove default triangle */
+            list-style: none;
             transition: background-color 0.2s ease;
             border-radius: 6px;
         }
         details > summary::-webkit-details-marker {
-            display: none; /* Hide default marker on Chrome */
+            display: none;
         }
         details > summary:hover {
             background-color: rgba(245, 158, 11, 0.1);
@@ -184,7 +182,6 @@
             </header>
             
             <main class="flex flex-col items-center px-4 pb-12">
-                <!-- Browse A-Z Card (New Location) -->
                 <div class="w-full max-w-4xl mb-8">
                     <div id="browse-card" class="glass-card rounded-lg p-8 flex flex-col">
                          <h3 class="text-2xl font-bold text-white mb-4">Browse A-Z</h3>
@@ -193,7 +190,6 @@
                     </div>
                 </div>
 
-                <!-- Search Bar -->
                 <div class="relative max-w-2xl mx-auto mb-12 w-full">
                     <div class="relative search-glow transition-shadow duration-300 rounded-full">
                         <input type="text" id="search-input" placeholder="Search for a term (e.g., LFE, Foley, Diegetic)..." class="w-full bg-slate-800 border border-slate-700 rounded-full py-4 pl-14 pr-6 text-white placeholder-slate-500 text-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition">
@@ -206,9 +202,7 @@
                     </div>
                 </div>
 
-                <!-- Main Interaction Grid -->
                 <div class="w-full max-w-2xl mb-12">
-                    <!-- Mind Map Card (Enhanced) -->
                     <div id="mind-map-card" class="glass-card rounded-lg p-8 hover:border-amber-500/50 transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden transform hover:-translate-y-1">
                         <svg viewBox="0 0 200 100" class="w-full h-32 opacity-20 absolute bottom-0 right-0 -mr-12 -mb-8">
                             <defs>
@@ -230,7 +224,6 @@
                     </div>
                 </div>
                 
-                <!-- Collapsible Guided Learning -->
                 <details class="max-w-4xl w-full mx-auto glass-card rounded-lg">
                     <summary class="cursor-pointer text-lg font-semibold text-white p-4 focus:outline-none">
                         <span class="flex items-center justify-between">
@@ -251,7 +244,6 @@
         </div>
 
         <!-- View: Reader -->
-        <!-- MODIFICATION: Replaced h-screen with dynamic-h-screen -->
         <div id="view-reader" class="hidden dynamic-h-screen overflow-y-auto">
             <header class="sticky top-0 glass-card z-20">
                 <div class="max-w-5xl mx-auto p-4 flex items-center justify-between">
@@ -268,21 +260,19 @@
         </div>
         
         <!-- View: Mind Map -->
-        <!-- MODIFICATION: Replaced h-screen with dynamic-h-screen -->
         <div id="view-mindmap" class="hidden dynamic-h-screen relative">
             <div id="mindmap-container">
                 <svg id="mindmap-svg"></svg>
             </div>
             <div id="tooltip"></div>
             
-            <header id="mindmap-header" class="absolute top-0 left-0 w-full z-20 flex justify-between items-start p-4">
-                <!-- Top Left Back Button -->
+            <!-- MODIFICATION: Removed p-4 from header class, CSS will handle padding now -->
+            <header id="mindmap-header" class="absolute top-0 left-0 w-full z-20 flex justify-between items-start">
                 <button id="mindmap-back-btn" class="glass-card rounded-lg p-3 flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
                     Dashboard
                 </button>
                 
-                <!-- Top Right Controls Toggle Button -->
                 <button id="toggle-controls-btn" class="lg:hidden glass-card rounded-lg p-3 text-amber-400 hover:text-amber-300 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -290,7 +280,6 @@
                 </button>
             </header>
             
-            <!-- Bottom Center Search Bar -->
             <div id="mindmap-search-container" class="absolute left-1/2 -translate-x-1/2 z-20">
                 <div class="relative">
                     <input type="text" id="mindmap-search-input" list="terms-datalist" placeholder="Find term in map..." class="glass-card rounded-lg p-3 pl-10 text-sm text-white bg-transparent w-64 focus:outline-none focus:ring-2 focus:ring-amber-500">
@@ -344,7 +333,6 @@
 
 
     <script>
-    // --- APP INITIALIZATION ---
     document.addEventListener('DOMContentLoaded', () => {
 
         // --- MODIFICATION: Set dynamic viewport height ---
@@ -357,7 +345,6 @@
         setAppHeight(); // Set initial height
 
         // --- DATA STORE ---
-        // NOTE: This is the complete, unabridged data for the application.
         const soundData = {
             introduction: {
                 title: "Introduction: The Language of the Unseen Art",
