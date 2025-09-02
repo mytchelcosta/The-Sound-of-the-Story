@@ -971,7 +971,7 @@
         }
 
         function renderAZGrid() {
-            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
             azGridContainer.innerHTML = alphabet.map(letter => 
                 `<button class="az-letter-btn bg-slate-700/50 text-slate-300 hover:bg-amber-600 hover:text-white font-mono text-sm w-8 h-8 rounded-md transition-colors" data-letter="${letter}">${letter}</button>`
             ).join('');
@@ -1086,11 +1086,19 @@
         }
 
         function handleAZClick(letter) {
-            searchInput.value = ''; // Clear search for better UX
-            const termsStartingWithLetter = Object.keys(soundData.dictionary)
-                .filter(term => term.toUpperCase().startsWith(letter))
-                .sort();
-            renderSearchResultsList(termsStartingWithLetter);
+            searchInput.value = '';
+            let filteredTerms;
+            if (letter === '#') {
+                 const numbers = '0123456789'.split('');
+                filteredTerms = Object.keys(soundData.dictionary)
+                     .filter(term => numbers.some(num => term.startsWith(num)))
+                    .sort();
+            } else {
+                filteredTerms = Object .keys(soundData.dictionary)
+                    .filter(term => term.toUpperCase().startsWith(letter))
+                    .sort();
+            }
+            render SearchResultsList(filteredTerms);
         }
         
         function renderSearchResultsList(results) {
@@ -1499,15 +1507,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
