@@ -1086,7 +1086,8 @@
             } else {
                 searchResults.innerHTML = results.map(term => {
                     const definition = soundData.dictionary[term].definition;
-                    const firstSentence = definition.split('. ')[0] + '.';
+                    const periodIndex = definition.indexOf('.');
+                    const firstSentence = periodIndex === -1 ? definition : definition.substring(0, periodIndex + 1);
                     return `<div class="p-4 hover:bg-amber-500/10 cursor-pointer search-result-item rounded-md" data-term="${term}">
                                 <p class="font-bold text-white">${term}</p>
                                 <p class="text-sm text-slate-400 mt-1">${firstSentence}</p>
@@ -1485,6 +1486,7 @@
     </script>
 </body>
 </html>
+
 
 
 
