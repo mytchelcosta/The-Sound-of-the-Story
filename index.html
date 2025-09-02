@@ -928,6 +928,7 @@
         let mindMapInitialized = false;
         let currentMindMap = {};
         let focusedCategory = null;
+        let openAZLetter = null;
 
         // --- APP LOGIC ---
 
@@ -1087,11 +1088,18 @@
 
         function handleAZClick(letter) {
             searchInput.value = '';
+            if (openAZLetter === letter && !searchResultsContainer.classList.contains('hidden')) {
+                // Clicking the same letter: close the list
+                searchResultsContainer.classList.add('hidden');
+                openAZLetter = null;
+                return;
+            }
+            openAZLetter = letter;
             let filteredTerms;
             if (letter === '#') {
-                 const numbers = '0123456789'.split('');
+                const numbers = '0123456789'.split('');
                 filteredTerms = Object.keys(soundData.dictionary)
-                     .filter(term => numbers.some(num => term.startsWith(num)))
+                    .filter(term => numbers.some(num => term.startsWith(num)))
                     .sort();
             } else {
                 filteredTerms = Object.keys(soundData.dictionary)
@@ -1507,6 +1515,3 @@
     </script>
 </body>
 </html>
-
-
-
